@@ -58,7 +58,7 @@ D3D12_VIEWPORT g_ViewPort = {0.0f,0.0f,
 D3D12_RECT     g_ScissorRect = {0, 0, 
                                      nScreenWidth, 
 	                                 nScreenHeight};
-ComPtr<IDXGISwapChain3> g_pSwapChain ;
+ComPtr<IDXGISwapChain3> g_pSwapChain =nullptr ;
 ComPtr<ID3D12Device> g_pDev = nullptr;
 ComPtr<ID3D12Resource> g_pRenderTargets[nFrameCount];
 ComPtr<ID3D12CommandAllocator> g_pCommandAllocator;
@@ -206,7 +206,7 @@ void InitPipeline(){
     psod.NumRenderTargets = 1;
     psod.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
     psod.SampleDesc.Count =1;
-
+    ThrowIfFailed(g_pDev->CreateGraphicsPipelineState(&psod, IID_PPV_ARGS(&g_pPipelineState)));
     ThrowIfFailed(g_pDev->CreateCommandList(0,D3D12_COMMAND_LIST_TYPE_DIRECT,g_pCommandAllocator.Get(),g_pPipelineState.Get(),IID_PPV_ARGS(&g_pCommandList)));
 
     ThrowIfFailed(g_pCommandList->Close());
