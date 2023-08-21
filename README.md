@@ -42,8 +42,14 @@ a3-a4: 4 渲染
 ### memory manager
 提高程序在CPU端的执行效率，减少系统调用，在程序初始化阶段一次申领所需的资源，进行内部分配管理
 block chain style: http://allenchou.net/2013/05/memory-management-part-1-of-3-the-allocator/
+ you are already using the built-in new and delete operators to manage dynamic game data. However, this is not good enough. Every allocation (new) and deallocation (delete) call has its overhead, since the default memory manager (the implementation is compiler-dependent) needs to scan the available memory to look for a fit block
+ To speed up the allocation and deallocation process, we will use the new operator to pre-allocate big chunks of raw memory (big char arrays), and manage these memory chunks on our own.
+ allocator can only create fix-sized pages and allocate fix-sized blocks to client code. Each allocator has a page list that keeps track of all pages created by the allocator; it also has a free list that keeps track of all blocks that can be allocated.
+The lists are implemented as singly-linked lists, so each page only has a memory overhead of one extra pointer. Each block would also have a pointer, but that memory space will be shared (i.e. union-ed) with user data once the block is allocated (because the pointer is not needed when a block is allocated).
 
-
+我们可以通过一个线程与Allocator之间的绑定关系，迅速地实现线程的本地堆（Thread Local Storage）。这个堆由于为某个线程所独占，所以并不需要互锁机制，从而可以大大地加速线程的执行速度。
+游戏引擎设计为多线程多模块异步平行执行模式。每个模块的任务类型很不一样，执行频率也不同。比如，渲染模块需要逐帧运行，涉及到大量的大块内存使用，但是这些buffer往往生命周期很短；场景加载模块则相对来说以很长的周期运行，其数据结构可能会在内存当中保持数分钟甚至数十分钟；而AI等逻辑模块则是典型的计算模块，会涉及到大量小buffer的高频分配与释放。
+游戏场景是由场景物体组成的，我们的很多模块都需要以场景物体为单位进行处理。同一个模块对于不同场景物体的处理是类似的，也就是说对于内存的访问模式是类似的。我们可以很自然地把他们组织成为一个内存管理上的兄弟关系。
 # Cmake build commands
 cmake -S ./ -B ./build -G "Ninja"
 cmake --build ./build --config Release
