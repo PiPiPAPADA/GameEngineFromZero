@@ -62,9 +62,4 @@ namespace My {
         Allocator(const Allocator& clone);
         Allocator &operator=(const Allocator& rhs);
     };
-    
-   
-    
-    
-    
-};
+}

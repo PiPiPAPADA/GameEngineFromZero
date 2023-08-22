@@ -5,7 +5,7 @@
 namespace My{
     Interface IRuntimeModule{
         public:
-            virtual ~IRuntimeModule() {};
+            virtual ~IRuntimeModule() {}
             // create init/final func bcz, static value has not fixed order for init
             // some module only for load into memory, then do init 
             // module not used only release memory
