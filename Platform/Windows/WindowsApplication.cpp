@@ -3,11 +3,7 @@
 
 using namespace My;
 
-namespace My{
-    GfxConfiguration config(8,8,8,8,32,0,0,960,540,L"Game Engine From Zero (Windows)");
-    WindowsApplication g_App(config);
-    IApplication*   g_pApp = & g_App;
-}
+
 
 int My::WindowsApplication::Initialize()
 {
@@ -38,7 +34,7 @@ int My::WindowsApplication::Initialize()
     wc.lpszClassName = _T("GameEngineFromZero");
     RegisterClassEx(&wc);
     //create window
-    hWnd = CreateWindowExW(0,L"GameEngineFromZero",
+    hWnd = CreateWindowEx(0,_T("GameEngineFromZero"),
                             m_Config.appName,
                             WS_OVERLAPPEDWINDOW,
                             CW_USEDEFAULT,

@@ -1,7 +1,10 @@
 #include "BaseApplication.hpp"
+#include "GrahphicsManager.hpp"
+#include "MemoryManager.hpp"
 
-namespace My{
+namespace My {
     GfxConfiguration config;
-    BaseApplication g_App(config);
-    IApplication* g_pApp = &g_App;
+	IApplication*    g_pApp             = static_cast<IApplication*>(new BaseApplication(config));
+    GraphicsManager* g_pGraphicsManager = static_cast<GraphicsManager*>(new GraphicsManager);
+    MemoryManager*   g_pMemoryManager   = static_cast<MemoryManager*>(new MemoryManager);
 }
