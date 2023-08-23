@@ -10,6 +10,8 @@ namespace My{
             virtual void Finalize();
             virtual void Tick();
             virtual bool IsQuit();
+
+            inline GfxConfiguration& GetConfiguration() {return m_Config;};
         protected:
             // flag for quit from main loop
             static bool m_bQuit;

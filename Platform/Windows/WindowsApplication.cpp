@@ -53,6 +53,8 @@ int My::WindowsApplication::Initialize()
     //display the window on the screen
     ShowWindow(hWnd,SW_SHOW);
 
+    m_hWnd = hWnd;
+
     return result;
 
 }

@@ -1,2 +1,2 @@
 add_executable(MyGameEngine WindowsApplication.cpp)
-target_link_libraries(MyGameEngine Common)
+target_link_libraries(MyGameEngine Common D3dRHI d3d12 dxgi d3dcompiler)
