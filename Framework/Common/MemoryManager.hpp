@@ -15,7 +15,7 @@ namespace My{
 
         template<typename T>
         void Delete(T* p){
-            reinterpret_cast<T*>(p)->~T();
+            p->~T();
             Free(p,sizeof(T));
         }
     public:
@@ -25,7 +25,8 @@ namespace My{
         virtual void Tick();
 
         void* Allocate(size_t size);
-        void* Free(void* p, size_t size);
+        void* Allocate(size_t size, size_t alignment);
+        void Free(void* p, size_t size);
     private:
         static size_t* m_pBlockSizeLookup;
         static Allocator* m_pAllocators;

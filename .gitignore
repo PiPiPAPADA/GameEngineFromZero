@@ -5,3 +5,4 @@ build
 *.pso
 *.vso
 External/ispc
+Asset/Textures

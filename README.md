@@ -71,8 +71,11 @@ The lists are implemented as singly-linked lists, so each page only has a memory
     3.可以控制资源文件打包的格式，多个资源文件合并在一个文件当中存储，减少文件系统当中文件的数量，加快文件检索的速度，减少系统当中需要管理的文件句柄的数量，减少系统的调用次数。
     4.文件压缩，有损/无损，模型的顶点/动画的变换矩阵数据，采用无损压缩，贴图/音频视频，有损， LZMA无损，S3 tex, avc/aac 音频压缩
     5.减少对文件系统的随机访问
-    6.对资源的加载实现异步流式加载和部分加载， 相对于渲染线程来说是异步的，
+    6.对资源的加载实现异步流式加载和部分加载， 相对于渲染线程来说是异步的
 
+#### 资源加载
+    1. 使用多线程，创建工作线程池，对同步阻塞型的f*系列API放到工作线程当中去执行
+    2. 使用异步文件IO API，线程有操作系统创建
 # Cmake build commands
 cmake -S ./ -B ./build -G "Ninja"
 cmake --build ./build --config Release

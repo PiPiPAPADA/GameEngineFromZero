@@ -1,5 +1,6 @@
 #include "WindowsApplication.hpp"
 #include <tchar.h>
+#include <iostream>
 
 using namespace My;
 
@@ -11,6 +12,8 @@ int My::WindowsApplication::Initialize()
     result = BaseApplication::Initialize();
     if(result != 0)
         exit(result);
+    
+     
     
     //get hinstance of console program
     HINSTANCE hInstance = GetModuleHandle(NULL);
@@ -44,11 +47,9 @@ int My::WindowsApplication::Initialize()
                             NULL,
                             NULL,
                             hInstance,
-                            NULL);
-    
+                            this);
     //display the window on the screen
     ShowWindow(hWnd,SW_SHOW);
-
     m_hWnd = hWnd;
 
     return result;
@@ -70,22 +71,47 @@ void My::WindowsApplication::Tick()
     }
 }
 
-LRESULT My::WindowsApplication::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK My::WindowsApplication::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    WindowsApplication* pThis;
+    if (message == WM_NCCREATE)
+    {
+        pThis = static_cast<WindowsApplication*>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
+
+        SetLastError(0);
+        if (!SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pThis)))
+        {
+            if (GetLastError() != 0)
+                return FALSE;
+        }
+    }
+    else
+    {
+        pThis = reinterpret_cast<WindowsApplication*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+    }
+
     // sort through and find what code to run for the message given
     switch(message)
     {
 	case WM_PAINT:
-        // we will replace this part with Rendering Module
 	    {
-	    } break;
+            pThis->OnDraw();
+	    } 
+        break;
+
+    case WM_KEYDOWN:
+        {
+            // we will replace this with input manager
+            m_bQuit = true;
+        } 
+        break;
 
         // this message is read when the window is closed
     case WM_DESTROY:
         {
             // close the application entirely
             PostQuitMessage(0);
-            BaseApplication::m_bQuit = true;
+            m_bQuit = true;
             return 0;
         }
     }

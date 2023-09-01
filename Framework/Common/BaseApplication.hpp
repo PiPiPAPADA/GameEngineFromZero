@@ -13,6 +13,7 @@ namespace My{
 
             inline GfxConfiguration& GetConfiguration() {return m_Config;};
         protected:
+            virtual void OnDraw(){};
             // flag for quit from main loop
             static bool m_bQuit;
             GfxConfiguration m_Config;
