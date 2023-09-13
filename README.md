@@ -110,8 +110,13 @@ The lists are implemented as singly-linked lists, so each page only has a memory
         4.传递函数
     https://en.m.wikipedia.org/wiki/Open_Game_Engine_Exchange
 
+##### 场景节点
+    1. 场景节点添加了PBR的元素
+    2. 添加了聚光灯，光照函数
+    3. 添加了正交相机
+
 ##### 场景实现细节
-    1. GUID global Unique ID,全球唯一的，调用接口，资源管理系统识别号
+    1. GUID global Unique ID,全球唯一的，调用接口，资源管理系统识别号  引用GUID 库
     2. AOS ->CPU 友好，SOA-> GPU, (Structure of array)
     3. index->16bit, 最多65536个顶点，3A中要20万个顶点，需要模型切割，大模型切割到64K顶点的模型碎片
 #### 文件IO

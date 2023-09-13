@@ -3,7 +3,7 @@
 
 using namespace My;
 using namespace std;
-// using namespace xg;
+using namespace xg;
 
 int32_t main(int32_t argc, char** argv){
     int32_t result =0;
@@ -12,12 +12,16 @@ int32_t main(int32_t argc, char** argv){
     SceneObjectOmnLight    soOmniLight;
     SceneObjectSpotLight    soSpotLight;
     SceneObjectCamera       soCamera;
+    SceneObjectOrthogonalCamera       soOrthogonalCamera;
+    SceneObjectPerspectiveCamera      soPerspectiveCamera;
 
     cout << soMesh << endl;
     cout << soMaterial << endl;
     cout << soOmniLight << endl;
     cout << soSpotLight << endl;
     cout << soCamera   << endl;
+    cout << soOrthogonalCamera  << endl;
+    cout << soPerspectiveCamera << endl;
 
     return result;
 }

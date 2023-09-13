@@ -13,7 +13,7 @@ namespace My
     template<typename T>
     struct SceneNode : public BaseSceneNode
     {
-        T* t;
+        std::shared_ptr<T> pSceneObject;
     };
     
     typedef BaseSceneNode SceneEmptyNode;
