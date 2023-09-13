@@ -1,3 +1,15 @@
 [submodule "DirectXMath"]
 	path = DirectXMath
 	url = https://github.com/Microsoft/DirectXMath.git
+[submodule "External/src/crossguid"]
+	path = External/src/crossguid
+	url = https://github.com/netwarm007/crossguid.git
+[submodule "External/src/zlib"]
+	path = External/src/zlib
+	url = https://github.com/netwarm007/zlib.git
+[submodule "External/src/libpng"]
+	path = External/src/libpng
+	url = https://github.com/glennrp/libpng.git
+[submodule "External/src/opengex"]
+	path = External/src/opengex
+	url = https://github.com/netwarm007/OpenGEX.git
