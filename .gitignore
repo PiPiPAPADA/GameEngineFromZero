@@ -6,3 +6,4 @@ build
 *.vso
 External/ispc
 Asset/Textures
+External/Windows

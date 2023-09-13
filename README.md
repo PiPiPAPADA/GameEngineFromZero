@@ -109,6 +109,11 @@ The lists are implemented as singly-linked lists, so each page only has a memory
         3.参数 （类型，亮度）
         4.传递函数
     https://en.m.wikipedia.org/wiki/Open_Game_Engine_Exchange
+
+##### 场景实现细节
+    1. GUID global Unique ID,全球唯一的，调用接口，资源管理系统识别号
+    2. AOS ->CPU 友好，SOA-> GPU, (Structure of array)
+    3. index->16bit, 最多65536个顶点，3A中要20万个顶点，需要模型切割，大模型切割到64K顶点的模型碎片
 #### 文件IO
     1.文件跨度很大，几十K到几十G
     2.文件系统是操作系统的一部分，但是对于PS来说，根据游戏需求提供好几种文件系统，高速读取优化，存储游戏本体的分区，高速读写小文件优化，临时目录
