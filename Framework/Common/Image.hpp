@@ -1,5 +1,6 @@
 #pragma once
-
+#include <iostream>
+#include "geommath.hpp"
 namespace My {
     typedef struct _Image
     {
@@ -10,5 +11,5 @@ namespace My {
         uint32_t pitch;
         size_t data_size;
     }Image;
-    
+    std::ostream& operator<<(std::ostream& out, const Image& image);
 }
