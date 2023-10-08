@@ -4,7 +4,6 @@
 #include <limits>
 #include <math.h>
 #include "include/CrossProduct.h"
-#include "include/DotProduct.h"
 #include "include/MulByElement.h"
 #include "include/Normalize.h"
 #include "include/Transform.h"
@@ -27,11 +26,18 @@ namespace My {
     template<typename T, size_t RowSize, size_t ColSize>
         constexpr size_t countof(T (&)[RowSize][ColSize]) { return RowSize * ColSize; }
 
+#ifdef max
+    #undef max
+#endif
+#ifdef min
+    #undef min
+#endif
+
     template<typename T>
         constexpr float normalize(T value) {
             return value < 0
-                ? -static_cast<float>(value) / (std::numeric_limits<T>::min)()
-                :  static_cast<float>(value) / (std::numeric_limits<T>::max)()
+                ? -static_cast<float>(value) / std::numeric_limits<T>::min()
+                :  static_cast<float>(value) / std::numeric_limits<T>::max()
                 ;
         }
 
@@ -133,11 +139,15 @@ namespace My {
 
         operator T*() { return data; };
         operator const T*() const { return static_cast<const T*>(data); };
-         Vector4Type& operator=(const T* f) 
+        Vector4Type& operator=(const T* f) 
         { 
-            memcpy(data, f, sizeof(T) * 4); 
+            for (int32_t i = 0; i < 4; i++)
+            {
+                data[i] = *(f + i); 
+            }
             return *this;
         };
+        
     };
 
     typedef Vector4Type<float> Vector4f;
@@ -193,10 +203,25 @@ namespace My {
         ispc::CrossProduct(vec1, vec2, result);
     }
 
+    template <typename T>
+    inline void DotProduct(T& result, const T* a, const T* b, size_t count)
+    {
+        T* _result = new T[count];
+
+        result = static_cast<T>(0);
+
+        ispc::MulByElement(a, b, _result, count);
+        for (size_t i = 0; i < count; i++) {
+            result += _result[i];
+        }
+
+        delete[] _result;
+    }
+
     template <template <typename> class TT, typename T>
     inline void DotProduct(T& result, const TT<T>& vec1, const TT<T>& vec2)
     {
-        ispc::DotProduct(vec1, vec2, &result, countof(vec1.data));
+        DotProduct(result, static_cast<const T*>(vec1), static_cast<const T*>(vec2), countof(vec1.data));
     }
 
     template <typename T>
@@ -225,13 +250,19 @@ namespace My {
 
         operator T*() { return &data[0][0]; };
         operator const T*() const { return static_cast<const T*>(&data[0][0]); };
+
         Matrix& operator=(const T* _data) 
         {
-            memcpy(data, _data, ROWS * COLS * sizeof(T));
+            for (int i = 0; i < ROWS; i++) {
+                for (int j = 0; j < COLS; j++) {
+                    data[i][j] = *(_data + i * COLS + j);
+                }
+            }
             return *this;
         }
     };
 
+    typedef Matrix<float, 3, 3> Matrix3X3f;
     typedef Matrix<float, 4, 4> Matrix4X4f;
 
     template <typename T, int ROWS, int COLS>
@@ -285,7 +316,8 @@ namespace My {
         Transpose(matrix2_transpose, matrix2);
         for (int i = 0; i < Da; i++) {
             for (int j = 0; j < Dc; j++) {
-                ispc::DotProduct(matrix1[i], matrix2_transpose[j], &result[i][j], Db);
+                DotProduct(result[i][j], matrix1[i], matrix2_transpose[j], Db);
+
             }
         }
 
@@ -307,10 +339,13 @@ namespace My {
         ispc::Transpose(matrix1, result, ROWS, COLS);
     }
 
-    template <typename T>
-    inline void Normalize(T& result)
+    template <template <typename> class TT, typename T>
+    inline void Normalize(TT<T>& a)
     {
-        ispc::Normalize(result, countof(result.data));
+        T length;
+        DotProduct(length, static_cast<T*>(a), static_cast<T*>(a), countof(a.data));
+        length = sqrt(length);
+        ispc::Normalize(a, length, countof(a.data));
     }
 
     inline void MatrixRotationYawPitchRoll(Matrix4X4f& matrix, const float yaw, const float pitch, const float roll)
@@ -444,7 +479,8 @@ namespace My {
 
         return;
     }
-     inline void MatrixScale(Matrix4X4f& matrix, const float x, const float y, const float z)
+
+    inline void MatrixScale(Matrix4X4f& matrix, const float x, const float y, const float z)
     {
         Matrix4X4f scale = {{{
             {    x, 0.0f, 0.0f, 0.0f},
@@ -490,7 +526,8 @@ namespace My {
 
         return;
     }
-      inline void MatrixRotationAxis(Matrix4X4f& matrix, const Vector3f& axis, const float angle)
+
+    inline void MatrixRotationAxis(Matrix4X4f& matrix, const Vector3f& axis, const float angle)
     {
         float c = cosf(angle), s = sinf(angle), one_minus_c = 1.0f - c;
 
@@ -509,7 +546,7 @@ namespace My {
         Matrix4X4f rotation = {{{
             {   1.0f - 2.0f * q.y * q.y - 2.0f * q.z * q.z,  2.0f * q.x * q.y + 2.0f * q.w * q.z,   2.0f * q.x * q.z - 2.0f * q.w * q.y,    0.0f    },
             {   2.0f * q.x * q.y - 2.0f * q.w * q.z,    1.0f - 2.0f * q.x * q.x - 2.0f * q.z * q.z, 2.0f * q.y * q.z + 2.0f * q.w * q.x,    0.0f    },
-            {   2.0f * q.x * q.z + 2.0f * q.w * q.y,    2.0f * q.y * q.z - 2.0f * q.y * q.z - 2.0f * q.w * q.x, 1.0f - 2.0f * q.x * q.x - 2.0f * q.y * q.y, 0.0f    },
+            {   2.0f * q.x * q.z + 2.0f * q.w * q.y,    2.0f * q.y * q.z - 2.0f * q.w * q.x, 1.0f - 2.0f * q.x * q.x - 2.0f * q.y * q.y, 0.0f    },
             {   0.0f,   0.0f,   0.0f,   1.0f    }
         }}};
 

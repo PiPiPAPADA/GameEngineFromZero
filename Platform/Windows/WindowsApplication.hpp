@@ -1,3 +1,4 @@
+#pragma once
 #include <Windows.h>
 #include <windowsx.h>
 #include "BaseApplication.hpp"
@@ -11,7 +12,7 @@ namespace My {
         virtual int Initialize();
         virtual void Finalize();
         virtual void Tick();
-        inline HWND GetMainWindow() const {return m_hWnd;};
+        HWND GetMainWindow() const {return m_hWnd;};
 
     private:
         // windowproc function
@@ -19,7 +20,7 @@ namespace My {
 
       
 
-    private:
+    protected:
         HWND m_hWnd;
     };
 }

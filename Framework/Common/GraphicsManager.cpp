@@ -1,17 +1,29 @@
+#include <iostream>
 #include "GrahphicsManager.hpp"
+#include "cbuffer.h"
 
 using namespace My;
+using namespace std;
 
-int My::GraphicsManager::Initialize()
+
+int GraphicsManager::Initialize()
 {
     int result = 0;
     return result;
 }
 
-void My::GraphicsManager::Finalize()
+void GraphicsManager::Finalize()
 {
 }
 
-void My::GraphicsManager::Tick()
+void GraphicsManager::Tick()
+{
+}
+
+void GraphicsManager::Clear()
+{
+}
+
+void GraphicsManager::Draw()
 {
 }

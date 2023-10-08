@@ -4,6 +4,7 @@
 #include "D2d/D2dGraphicsManager.hpp"
 #include "MemoryManager.hpp"
 #include "AssetLoader.hpp"
+#include "SceneManager.hpp"
 #include "utility.hpp"
 #include "BMP.hpp"
 
@@ -39,6 +40,8 @@ namespace My {
 	IApplication* g_pApp                = static_cast<IApplication*>(new TestApplication(config));
     GraphicsManager* g_pGraphicsManager = static_cast<GraphicsManager*>(new TestGraphicsManager);
     MemoryManager*   g_pMemoryManager   = static_cast<MemoryManager*>(new MemoryManager);
+    AssetLoader*     g_pAssetLoader     = static_cast<AssetLoader*>(new AssetLoader);
+    SceneManager*    g_pSceneManager    = static_cast<SceneManager*>(new SceneManager);
 
 }
 

@@ -12,5 +12,8 @@ namespace My{
             // check application whether quit, quit was trick by os
             virtual bool IsQuit() =0;
             virtual GfxConfiguration& GetConfiguration() = 0;
+            
     };
+    extern IApplication*    g_pApp;
+
 }

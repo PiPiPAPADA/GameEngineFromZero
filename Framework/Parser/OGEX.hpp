@@ -3,23 +3,24 @@
 #include "portable.hpp"
 #include "SceneParser.hpp"
 
-namespace My
-{
-    class OgexParser  : implements SceneParser{
+namespace My {
+    class OgexParser : implements SceneParser
+    {
     private:
         std::unordered_map<std::string, std::shared_ptr<BaseSceneObject>> m_SceneObjects;
+
     private:
-        void ConvertOddlStructureToSceneNode(const ODDL::Structure& structure, std::unique_ptr<BaseSceneNode>& base_node){
+        void ConvertOddlStructureToSceneNode(const ODDL::Structure& structure, std::unique_ptr<BaseSceneNode>& base_node)
+        {
             std::unique_ptr<BaseSceneNode> node;
-            switch (structure.GetStructureType())
-            {
-            case OGEX::kStructureNode:
+
+            switch(structure.GetStructureType()) {
+                case OGEX::kStructureNode:
                     {
                         node = std::make_unique<SceneEmptyNode>(structure.GetStructureName());
                     }
-                /* code */
-                break;
-            case OGEX::kStructureGeometryNode:
+                    break;
+                case OGEX::kStructureGeometryNode:
                     {
                         node = std::make_unique<SceneGeometryNode>(structure.GetStructureName());
 						SceneGeometryNode& _node = dynamic_cast<SceneGeometryNode&>(*node);
@@ -49,17 +50,17 @@ namespace My
                         }
                     }
                     break;
-            case OGEX::kStructureLightNode:
+                case OGEX::kStructureLightNode:
                     {
                         node = std::make_unique<SceneLightNode>(structure.GetStructureName());
                     }
                     break;
-            case OGEX::kStructureCameraNode:
+                case OGEX::kStructureCameraNode:
                     {
                         node = std::make_unique<SceneCameraNode>(structure.GetStructureName());
                     }
                     break;
-            case OGEX::kStructureGeometryObject:
+                case OGEX::kStructureGeometryObject:
                     {
 						const OGEX::GeometryObjectStructure& _structure = dynamic_cast<const OGEX::GeometryObjectStructure&>(structure);
                         std::string _key = _structure.GetStructureName();
@@ -236,7 +237,7 @@ namespace My
 						}
                     }
                     return;
-            case OGEX::kStructureTransform:
+                case OGEX::kStructureTransform:
                     {
                         int32_t index, count;
                         const OGEX::TransformStructure& _structure = dynamic_cast<const OGEX::TransformStructure&>(structure);
@@ -253,7 +254,7 @@ namespace My
                         }
                     }
                     return;
-            case OGEX::kStructureMaterial:
+                case OGEX::kStructureMaterial:
                     {
                         const OGEX::MaterialStructure& _structure = dynamic_cast<const OGEX::MaterialStructure&>(structure);
                         std::string material_name;
@@ -304,36 +305,44 @@ namespace My
                         }
                     }
                     return;
-            default:
-                return;
+                default:
+                    // just ignore it and finish
+                    return;
             };
 
             const ODDL::Structure* sub_structure = structure.GetFirstSubnode();
             while (sub_structure)
             {
-                ConvertOddlStructureToSceneNode(*sub_structure,node);
+                ConvertOddlStructureToSceneNode(*sub_structure, node);
+
                 sub_structure = sub_structure->Next();
             }
+
             base_node->AppendChild(std::move(node));
         }
+
     public:
         OgexParser() = default;
         virtual ~OgexParser() = default;
 
-        virtual std::unique_ptr<BaseSceneNode> Parse(const std::string& buf){
-            std::unique_ptr<BaseSceneNode> root_node(new BaseSceneNode("scene_root"));
-            OGEX::OpenGexDataDescription openGexDataDescription;
+        virtual std::unique_ptr<BaseSceneNode> Parse(const std::string& buf)
+        {
+            std::unique_ptr<BaseSceneNode> root_node (new BaseSceneNode("scene_root"));
+            OGEX::OpenGexDataDescription  openGexDataDescription;
 
             ODDL::DataResult result = openGexDataDescription.ProcessText(buf.c_str());
-            if(result == ODDL::kDataOkay){
+            if (result == ODDL::kDataOkay)
+            {
                 const ODDL::Structure* structure = openGexDataDescription.GetRootStructure()->GetFirstSubnode();
-                while(structure){
-                    ConvertOddlStructureToSceneNode(*structure,root_node);
+                while (structure)
+                {
+                    ConvertOddlStructureToSceneNode(*structure, root_node);
+
                     structure = structure->Next();
                 }
             }
-            return std::move(root_node);
-        }
 
+            return root_node;
+        }
     };
-} // namespace My
+}
