@@ -147,7 +147,7 @@ void OpenGLGraphicsManager::Draw()
     static float rotateAngle = 0.0f;
     //update work matrix to rotate the model
 
-    rotateAngle += PI/120;
+    rotateAngle += PI/3600;
     Matrix4X4f rotationMatrixY;
     Matrix4X4f rotationMatrixZ;
     MatrixRotationY(rotationMatrixY,rotateAngle);

@@ -52,13 +52,13 @@ int My::TestApplication::Initialize()
     result = WindowsApplication::Initialize();
 
     if (result == 0) {
-        AssetLoader asset_loader;
         BmpParser   parser;
-        Buffer buf = asset_loader.SyncOpenAndReadBinary("Textures/icelogo-color.bmp");
+        Buffer buf = g_pAssetLoader->SyncOpenAndReadBinary("Textures/icelogo-color.bmp");
 
         m_Image[0] = parser.Parser(buf);
 
-        buf = asset_loader.SyncOpenAndReadBinary("Textures/icelogo-normal.bmp");
+        buf = g_pAssetLoader->SyncOpenAndReadBinary("Textures/icelogo-normal.bmp");
+
         m_Image[1] = parser.Parser(buf);
 
         // std::cout<<m_Image[1].Width<<m_Image[1].Height<<std::endl;
@@ -94,7 +94,7 @@ void My::TestGraphicsManager::DrawBitmap(const Image* image, int32_t index)
 
     D2D1_SIZE_F rtSize = m_pRenderTarget->GetSize();
     D2D1_SIZE_F bmpSize = m_pBitmap->GetSize();
-    // std::cout<<rtSize.height<<"\t"<<rtSize.width<<"\t"<<bmpSize.height<<"\t"<<bmpSize.width<<std::endl;
+    std::cout<<rtSize.height<<"\t"<<rtSize.width<<"\t"<<bmpSize.height<<"\t"<<bmpSize.width<<std::endl;
     D2D1_RECT_F source_rect = D2D1::RectF(
                      0,
                      0,
