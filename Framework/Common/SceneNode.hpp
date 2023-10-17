@@ -2,35 +2,39 @@
 #include <iostream>
 #include <list>
 #include <memory>
-#include <vector>
 #include <string>
+#include <vector>
 #include "SceneObject.hpp"
 
-namespace My
-{
-    class BaseSceneNode{
+namespace My {
+    class BaseSceneNode {
         protected:
             std::string m_strName;
             std::list<std::unique_ptr<BaseSceneNode>> m_Children;
             std::list<std::unique_ptr<SceneObjectTransform>> m_Transforms;
+
         protected:
             virtual void dump(std::ostream& out) const {};
-        
+
         public:
             BaseSceneNode() {};
-            BaseSceneNode(const char* name) {m_strName = name;};
-            BaseSceneNode(const std::string& name) { m_strName = name;};
-            BaseSceneNode(const std::string&& name) { m_strName = std::move(name);};
-            virtual ~BaseSceneNode() {};
+            BaseSceneNode(const char* name) { m_strName = name; };
+            BaseSceneNode(const std::string& name) { m_strName = name; };
+            BaseSceneNode(const std::string&& name) { m_strName = std::move(name); };
+			virtual ~BaseSceneNode() {};
 
-            void AppendChild(std::unique_ptr<BaseSceneNode>&& sub_node){
+            void AppendChild(std::unique_ptr<BaseSceneNode>&& sub_node)
+            {
                 m_Children.push_back(std::move(sub_node));
             }
 
-            void AppendChild(std::unique_ptr<SceneObjectTransform>&& Transform){
-                m_Transforms.push_back(std::move(Transform));
+            void AppendChild(std::unique_ptr<SceneObjectTransform>&& transform)
+            {
+                m_Transforms.push_back(std::move(transform));
             }
-        friend std::ostream& operator<<(std::ostream& out, const BaseSceneNode& node){
+
+        friend std::ostream& operator<<(std::ostream& out, const BaseSceneNode& node)
+        {
             static thread_local int32_t indent = 0;
             indent++;
 
@@ -53,37 +57,34 @@ namespace My
             return out;
         }
     };
-    
-   
-    template<typename T>
-    class SceneNode : public BaseSceneNode{
-    protected:
-        std::shared_ptr<T> m_pSceneObject;
-    protected:
-        virtual void dump(std::ostream& out) const{
-            if(m_pSceneObject)
-                out<< *m_pSceneObject<<std::endl;
-        };
-    public:
+
+    template <typename T>
+    class SceneNode : public BaseSceneNode {
+        protected:
+            std::string m_keySceneObject;
+
+        protected:
+            virtual void dump(std::ostream& out) const 
+            { 
+                out << m_keySceneObject << std::endl;
+            };
+
+        public:
             using BaseSceneNode::BaseSceneNode;
             SceneNode() = default;
-            SceneNode(const std::shared_ptr<T>& object) { m_pSceneObject = object; };
-            SceneNode(const std::shared_ptr<T>&& object) { m_pSceneObject = std::move(object); };
 
-            void AddSceneObjectRef(const std::shared_ptr<T>& object) { m_pSceneObject = object; };
-            void AddSceneObjectRef(const std::shared_ptr<T>&& object) { m_pSceneObject = std::move(object); };
+            void AddSceneObjectRef(const std::string& key) { m_keySceneObject = key; };
+
     };
-    
+
     typedef BaseSceneNode SceneEmptyNode;
-
-
     class SceneGeometryNode : public SceneNode<SceneObjectGeometry> 
     {
         protected:
             bool        m_bVisible;
             bool        m_bShadow;
             bool        m_bMotionBlur;
-            std::vector<std::shared_ptr<SceneObjectMaterial>> m_Materials;
+            std::vector<std::string> m_Materials;
 
         protected:
             virtual void dump(std::ostream& out) const 
@@ -94,7 +95,7 @@ namespace My
                 out << "Motion Blur: " << m_bMotionBlur << std::endl;
                 out << "Material(s): " << std::endl;
                 for (auto material : m_Materials) {
-                    out << *material << std::endl;
+                    out << material << std::endl;
                 }
             };
 
@@ -108,19 +109,20 @@ namespace My
             void SetIfMotionBlur(bool motion_blur) { m_bMotionBlur = motion_blur; };
             const bool MotionBlur() { return m_bMotionBlur; };
             using SceneNode::AddSceneObjectRef;
-            void AddSceneObjectRef(const std::shared_ptr<SceneObjectMaterial>& object) { m_Materials.push_back(object); };
+            void AddMaterialRef(const std::string& key) { m_Materials.push_back(key); };
+            void AddMaterialRef(const std::string&& key) { m_Materials.push_back(std::move(key)); };
     };
 
     class SceneLightNode : public SceneNode<SceneObjectLight> 
     {
         protected:
-            Vector3f m_Target;
+            bool        m_bShadow;
 
         public:
             using SceneNode::SceneNode;
 
-            void SetTarget(Vector3f& target) { m_Target = target; };
-            const Vector3f& GetTarget() { return m_Target; };
+            void SetIfCastShadow(bool shadow) { m_bShadow = shadow; };
+            const bool CastShadow() { return m_bShadow; };
     };
 
     class SceneCameraNode : public SceneNode<SceneObjectCamera>
@@ -134,5 +136,4 @@ namespace My
             void SetTarget(Vector3f& target) { m_Target = target; };
             const Vector3f& GetTarget() { return m_Target; };
     };
-
-} // namespace My
+}

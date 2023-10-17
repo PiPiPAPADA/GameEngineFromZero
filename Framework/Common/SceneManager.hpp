@@ -1,7 +1,7 @@
 #pragma once
 #include "geommath.hpp"
 #include "IRuntimeModule.hpp"
-#include "SceneNode.hpp"
+#include "SceneParser.hpp"
 
 namespace My
 {
@@ -13,10 +13,12 @@ namespace My
         virtual void Finalize();
         virtual void Tick();
         void LoadOgexScene(const char* scene_file_name);
+        void LoadScene(const char* scene_file_name);
 
+        const Scene& GetSceneForRendering();
 
     protected:
-       std::unique_ptr<BaseSceneNode> m_RootNode;
+       std::unique_ptr<Scene> m_pScene;
     };
     
     extern SceneManager* g_pSceneManager;

@@ -2,29 +2,41 @@
 #include "AssetLoader.hpp"
 #include "OGEX.hpp"
 
-My::SceneManager::~SceneManager()
+using namespace My;
+using namespace std;
+SceneManager::~SceneManager()
 {
 }
 
-int My::SceneManager::Initialize()
+int SceneManager::Initialize()
 {
     int result =0;
     return result;
 }
 
-void My::SceneManager::Finalize()
+void SceneManager::Finalize()
 {
 }
 
-void My::SceneManager::Tick()
+void SceneManager::Tick()
 {
 }
 
-void My::SceneManager::LoadOgexScene(const char *scene_file_name)
+void SceneManager::LoadOgexScene(const char *scene_file_name)
 {
-     AssetLoader asset_loader;
-    string ogex_text = asset_loader.SyncOpenAndReadTextFileToString(scene_file_name);
+    string ogex_text = g_pAssetLoader->SyncOpenAndReadTextFileToString(scene_file_name);
 
     OgexParser ogex_parser;
-    m_RootNode = ogex_parser.Parse(ogex_text);
+    m_pScene = ogex_parser.Parse(ogex_text);
+}
+
+void SceneManager::LoadScene(const char *scene_file_name)
+{
+    LoadOgexScene(scene_file_name);
+}
+
+const Scene &SceneManager::GetSceneForRendering()
+{
+    return *m_pScene;
+    // TODO: insert return statement here
 }

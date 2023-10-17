@@ -6,8 +6,9 @@ using namespace My;
 using namespace std;
 using namespace xg;
 
-int32_t main(int32_t argc, char** argv){
-      int32_t result = 0;
+int32_t main(int32_t argc, char** argv)
+{
+    int32_t result = 0;
     std::shared_ptr<SceneObjectGeometry>    soGeometry(new SceneObjectGeometry());
     std::shared_ptr<SceneObjectOmnLight>    soOmniLight(new SceneObjectOmnLight());
     std::shared_ptr<SceneObjectSpotLight>    soSpotLight(new SceneObjectSpotLight());
@@ -31,9 +32,9 @@ int32_t main(int32_t argc, char** argv){
     std::unique_ptr<SceneLightNode>     snLight(new SceneLightNode());
     std::unique_ptr<SceneCameraNode>     snCamera(new SceneCameraNode());
 
-    snGeometry->AddSceneObjectRef(soGeometry);
-    snLight->AddSceneObjectRef(soSpotLight);
-    snCamera->AddSceneObjectRef(soOrthogonalCamera);
+    snGeometry->AddSceneObjectRef(soGeometry->GetGuid());
+    snLight->AddSceneObjectRef(soSpotLight->GetGuid());
+    snCamera->AddSceneObjectRef(soOrthogonalCamera->GetGuid());
 
     snEmpty.AppendChild(std::move(snGeometry));
     snEmpty.AppendChild(std::move(snLight));

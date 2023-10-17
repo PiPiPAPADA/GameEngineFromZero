@@ -1,6 +1,9 @@
 #pragma once
 #include "IApplication.hpp"
-#include "GfxConfiguration.h"
+#include "GrahphicsManager.hpp"
+#include "MemoryManager.hpp"
+#include "AssetLoader.hpp"
+#include "SceneManager.hpp"
 
 namespace My{
     class BaseApplication: implements IApplication{

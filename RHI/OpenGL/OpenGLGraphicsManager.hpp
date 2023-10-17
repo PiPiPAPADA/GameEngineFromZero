@@ -1,6 +1,10 @@
 #pragma once
 #include "GrahphicsManager.hpp"
 #include "geommath.hpp"
+#include <vector>
+#include <unordered_map>
+#include <string>
+#include "glad/glad.h"
 
 namespace My {
     class OpenGLGraphicsManager : public GraphicsManager{
@@ -12,7 +16,7 @@ namespace My {
             virtual void Draw();
         private:
             bool SetShaderParameters(float* worldMatrix, float* viewMatrix,float* projectMatrix);
-            bool InitializeBuffers();
+            void InitializeBuffers();
             void RenderBuffers();
             void CalculateCameraPosition();
             bool InitializeShader(const char* vsFilename, const char* fsFilename);
@@ -24,6 +28,16 @@ namespace My {
             const bool VSYNC_ENABLED = true;
             const float screenDepth = 1000.0f;
             const float screenNear = 0.1f;
+             struct DrawBatchContext {
+            GLuint  vao;
+            GLenum  mode;
+            GLenum  type;
+            GLsizei count;
+            };
+
+            std::vector<DrawBatchContext> m_VAO;
+            std::unordered_map<std::string, unsigned int> m_Buffers;
+
 
             int m_vertexCount, m_indexCount;
             unsigned int m_vertexArrayId,m_vertexBufferId,m_indexBufferId;

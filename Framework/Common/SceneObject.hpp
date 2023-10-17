@@ -82,7 +82,7 @@ namespace My{
         kVertexDataTypeDouble1   = "DUB1"_i32,
         kVertexDataTypeDouble2   = "DUB2"_i32,
         kVertexDataTypeDouble3   = "DUB3"_i32,
-        kVertexDataTypeDouble4   = "DUB3"_i32
+        kVertexDataTypeDouble4   = "DUB4"_i32
     };
 
     std::ostream& operator<<(std::ostream& out, VertexDataType type);
@@ -115,6 +115,71 @@ namespace My{
             m_Attribute(attr),m_MorphTargetIndex(morph_index),m_DataType(data_type),m_pDataFloat(data),m_szData(data_size) {};
         SceneObjectVertexArray(SceneObjectVertexArray& arr) = default;
         SceneObjectVertexArray(SceneObjectVertexArray&& arr)= default;
+        const std::string& GetAttributeName() const { return m_Attribute; };
+            VertexDataType GetDataType() const { return m_DataType; };
+            size_t GetDataSize() const 
+            { 
+                size_t size = m_szData;
+
+                switch(m_DataType) {
+                    case VertexDataType::kVertexDataTypeFloat1:
+                    case VertexDataType::kVertexDataTypeFloat2:
+                    case VertexDataType::kVertexDataTypeFloat3:
+                    case VertexDataType::kVertexDataTypeFloat4:
+                        size *= sizeof(float);
+                        break;
+                    case VertexDataType::kVertexDataTypeDouble1:
+                    case VertexDataType::kVertexDataTypeDouble2:
+                    case VertexDataType::kVertexDataTypeDouble3:
+                    case VertexDataType::kVertexDataTypeDouble4:
+                        size *= sizeof(double);
+                        break;
+                    default:
+                        size = 0;
+                        assert(0);
+                        break;
+                }
+
+                return size;
+            }; 
+            const void* GetData() const { return m_pDataFloat; };
+            size_t GetVertexCount() const
+            {
+                size_t size = m_szData;
+
+                switch(m_DataType) {
+                    case VertexDataType::kVertexDataTypeFloat1:
+                        size /= 1;
+                        break;
+                    case VertexDataType::kVertexDataTypeFloat2:
+                        size /= 2;
+                        break;
+                    case VertexDataType::kVertexDataTypeFloat3:
+                        size /= 3;
+                        break;
+                    case VertexDataType::kVertexDataTypeFloat4:
+                        size /= 4;
+                        break;
+                    case VertexDataType::kVertexDataTypeDouble1:
+                        size /= 1;
+                        break;
+                    case VertexDataType::kVertexDataTypeDouble2:
+                        size /= 2;
+                        break;
+                    case VertexDataType::kVertexDataTypeDouble3:
+                        size /= 3;
+                        break;
+                    case VertexDataType::kVertexDataTypeDouble4:
+                        size /= 4;
+                        break;
+                    default:
+                        size = 0;
+                        assert(0);
+                        break;
+                }
+
+                return size;
+            }
     friend std::ostream& operator<<(std::ostream& out, const SceneObjectVertexArray& obj);
     // friend std::ostream& operator<<(std::ostream& out, const SceneObjectVertexArray& obj)
     // {
@@ -165,7 +230,38 @@ namespace My{
                 : m_nMaterialIndex(material_index), m_szRestartIndex(restart_index), m_DataType(data_type), m_pData(data), m_szData(data_size) {};
             SceneObjectIndexArray(SceneObjectIndexArray& arr) = default;
             SceneObjectIndexArray(SceneObjectIndexArray&& arr) = default;
+         const IndexDataType GetIndexType() const { return m_DataType; };
+            const void* GetData() const { return m_pData; };
+            size_t GetDataSize() const 
+            { 
+                size_t size = m_szData;
 
+                switch(m_DataType) {
+                    case IndexDataType::kIndexDataTypeInt8:
+                        size *= sizeof(int8_t);
+                        break;
+                    case IndexDataType::kIndexDataTypeInt16:
+                        size *= sizeof(int16_t);
+                        break;
+                    case IndexDataType::kIndexDataTypeInt32:
+                        size *= sizeof(int32_t);
+                        break;
+                    case IndexDataType::kIndexDataTypeInt64:
+                        size *= sizeof(int64_t);
+                        break;
+                    default:
+                        size = 0;
+                        assert(0);
+                        break;
+                }
+
+                return size;
+            };
+
+            size_t GetIndexCount() const
+            {
+                return m_szData;
+            }
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectIndexArray& obj);
         // friend std::ostream& operator<<(std::ostream& out, const SceneObjectIndexArray& obj)
         // {
@@ -260,6 +356,12 @@ namespace My{
             };
             void SetPrimitiveType(PrimitiveType type) { m_PrimitiveType = type;}
 
+             size_t GetIndexCount() const { return (m_IndexArray.empty()? 0 : m_IndexArray[0].GetIndexCount()); };
+            size_t GetVertexCount() const { return (m_VertexArray.empty()? 0 : m_VertexArray[0].GetVertexCount()); };
+            size_t GetVertexPropertiesCount() const { return m_VertexArray.size(); }; 
+            const SceneObjectVertexArray& GetVertexPropertyArray(const size_t index) const { return m_VertexArray[index]; };
+            const SceneObjectIndexArray& GetIndexArray(const size_t index) const { return m_IndexArray[index]; };
+            const PrimitiveType& GetPrimitiveType() { return m_PrimitiveType; };
         
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectMesh& obj);
         // friend std::ostream& operator<<(std::ostream& out, const SceneObjectMesh& obj){
@@ -297,6 +399,7 @@ namespace My{
             SceneObjectTexture(SceneObjectTexture&) = default;
             SceneObjectTexture(SceneObjectTexture&&) = default;
             void SetName(std::string& name) { m_Name = name; };
+            void SetName(std::string&& name) { m_Name = std::move(name); }
             void AddTransform(Matrix4X4f& matrix) { m_Transforms.push_back(matrix); };
 
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectTexture& obj);
@@ -425,7 +528,9 @@ namespace My{
 			void SetIfMotionBlur(bool motion_blur) { m_bMotionBlur = motion_blur; };
 			const bool MotionBlur() { return m_bMotionBlur; };
             void AddMesh(std::shared_ptr<SceneObjectMesh>& mesh) { m_Mesh.push_back(std::move(mesh)); };
-            SceneObjectGeometry() : BaseSceneObject(SceneObjectType::kSceneObjectTypeGeometry) {};
+            SceneObjectGeometry(void) : BaseSceneObject(SceneObjectType::kSceneObjectTypeGeometry) {};
+            const std::weak_ptr<SceneObjectMesh> GetMesh() {return (m_Mesh.empty()? nullptr : m_Mesh[0]);};
+            const std::weak_ptr<SceneObjectMesh> GetMeshLOD(size_t lod) {return (lod < m_Mesh.size() ? m_Mesh[lod] : nullptr);};
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectGeometry& obj);
         // friend std::ostream& operator<<(std::ostream& out, const SceneObjectGeometry& obj)
         // {
@@ -453,7 +558,30 @@ namespace My{
         float  m_fNearClipDistance;
         float  m_fFarClipDistance;
         bool   m_bCastShadows;
-    
+        std::string m_strTexture;
+    public:
+        void SetIfCastShadow(bool shadow) { m_bCastShadows = shadow; };
+
+            void SetColor(std::string& attrib, Vector4f& color) 
+            { 
+                if(attrib == "light") {
+                    m_LightColor = Color(color); 
+                }
+            };
+
+            void SetParam(std::string& attrib, float param) 
+            { 
+                if(attrib == "intensity") {
+                    m_Intensity = param; 
+                }
+            };
+
+            void SetTexture(std::string& attrib, std::string& textureName) 
+            { 
+                if(attrib == "projection") {
+                    m_strTexture = textureName;
+                }
+            };
     protected:
         SceneObjectLight(Color&& color = Vector4f(1.0f),float intensity =10.0f, AttenFunc atten_func = DefaultAttenFunc, float near_clip = 1.0f, float far_clip = 100.0f, bool cast_shadows = false ) : BaseSceneObject(SceneObjectType::kSceneObjectTypeLight),m_LightColor(color),m_Intensity(intensity),m_LightAttenuation(atten_func), m_fNearClipDistance(near_clip), m_fFarClipDistance(far_clip), m_bCastShadows(cast_shadows) {};
 
@@ -488,6 +616,7 @@ namespace My{
             float m_fConeAngle;
             float m_fPenumbraAngle;
         public:
+            
            SceneObjectSpotLight(Color&& color = Vector4f(1.0f),float intensity = 10.0f, AttenFunc atten_func = DefaultAttenFunc, float near_clip = 1.0f, float far_clip = 100.0f, bool cast_shadows = false, float cone_angle = PI / 4.0f, float penumbra_angle = PI / 3.0f) : SceneObjectLight(std::move(color), intensity, atten_func, near_clip, far_clip, cast_shadows), m_fConeAngle(cone_angle), m_fPenumbraAngle(penumbra_angle) {};
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectSpotLight& obj);
         // friend std::ostream& operator<<(std::ostream& out, const SceneObjectSpotLight& obj){
@@ -506,6 +635,25 @@ namespace My{
             float m_fNearClipDistance;
             float m_fFarClipDistance;
         public:
+            void SetColor(std::string& attrib, Vector4f& color) 
+            { 
+                // TODO: extension
+            };
+
+            void SetParam(std::string& attrib, float param) 
+            { 
+                if(attrib == "near") {
+                    m_fNearClipDistance = param; 
+                }
+                else if(attrib == "far") {
+                    m_fFarClipDistance = param; 
+                }
+            };
+
+            void SetTexture(std::string& attrib, std::string& textureName) 
+            { 
+                // TODO: extension
+            };
             SceneObjectCamera(float aspect = 16.0f / 9.0f, float near_clip = 1.0f, float far_clip = 100.0f) : BaseSceneObject(SceneObjectType::kSceneObjectTypeCamera), m_fAspect(aspect), m_fNearClipDistance(near_clip), m_fFarClipDistance(far_clip) {};
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectCamera& obj);
         // friend std::ostream& operator<<(std::ostream& out, const SceneObjectCamera& obj)
@@ -536,6 +684,13 @@ namespace My{
         protected:
             float m_fFov;
         public:
+          void SetParam(std::string& attrib, float param) 
+            { 
+                // TODO: handle fovx, fovy
+                if(attrib == "fov") {
+                    m_fFov = param; 
+                }
+            };
              SceneObjectPerspectiveCamera(float aspect = 16.0f / 9.0f, float near_clip = 1.0f, float far_clip = 100.0f, float fov = PI / 2.0) : SceneObjectCamera(aspect, near_clip, far_clip), m_fFov(fov) {};
 
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectPerspectiveCamera& obj);
