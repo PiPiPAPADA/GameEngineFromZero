@@ -582,6 +582,11 @@ namespace My{
                     m_strTexture = textureName;
                 }
             };
+            void SetAttenuation(AttenFunc func){
+                m_LightAttenuation = func;
+            }
+        const Color& GetColor() { return m_LightColor; };
+        float GetIntensity() { return m_Intensity; };
     protected:
         SceneObjectLight(Color&& color = Vector4f(1.0f),float intensity =10.0f, AttenFunc atten_func = DefaultAttenFunc, float near_clip = 1.0f, float far_clip = 100.0f, bool cast_shadows = false ) : BaseSceneObject(SceneObjectType::kSceneObjectTypeLight),m_LightColor(color),m_Intensity(intensity),m_LightAttenuation(atten_func), m_fNearClipDistance(near_clip), m_fFarClipDistance(far_clip), m_bCastShadows(cast_shadows) {};
 
@@ -654,6 +659,10 @@ namespace My{
             { 
                 // TODO: extension
             };
+
+            float GetNearClipDistance() const { return m_fNearClipDistance;}
+            float GetFarClipDistance() const {return m_fFarClipDistance;}
+
             SceneObjectCamera(float aspect = 16.0f / 9.0f, float near_clip = 1.0f, float far_clip = 100.0f) : BaseSceneObject(SceneObjectType::kSceneObjectTypeCamera), m_fAspect(aspect), m_fNearClipDistance(near_clip), m_fFarClipDistance(far_clip) {};
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectCamera& obj);
         // friend std::ostream& operator<<(std::ostream& out, const SceneObjectCamera& obj)
@@ -690,8 +699,10 @@ namespace My{
                 if(attrib == "fov") {
                     m_fFov = param; 
                 }
+                SceneObjectCamera::SetParam(attrib,param);
             };
              SceneObjectPerspectiveCamera(float aspect = 16.0f / 9.0f, float near_clip = 1.0f, float far_clip = 100.0f, float fov = PI / 2.0) : SceneObjectCamera(aspect, near_clip, far_clip), m_fFov(fov) {};
+            float GetFov() const {return m_fFov;};
 
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectPerspectiveCamera& obj);
         // friend std::ostream& operator<<(std::ostream& out, const SceneObjectPerspectiveCamera& obj)
@@ -714,6 +725,9 @@ namespace My{
             SceneObjectTransform() { BuildIdentityMatrix(m_matrix); m_bSceneObjectOnly = false; };
 
             SceneObjectTransform(const Matrix4X4f& matrix, const bool object_only = false) { m_matrix = matrix; m_bSceneObjectOnly = object_only; };
+
+            operator Matrix4X4f() { return m_matrix; };
+            operator const Matrix4X4f() const { return m_matrix; };
 
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectTransform& obj);
         // friend std::ostream& operator<<(std::ostream& out, const SceneObjectTransform& obj)

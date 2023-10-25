@@ -15,37 +15,42 @@ namespace My {
             virtual void Clear();
             virtual void Draw();
         private:
-            bool SetShaderParameters(float* worldMatrix, float* viewMatrix,float* projectMatrix);
+            bool SetPerBatchShaderParameters(const char* paramName, float* param);
+            bool SetPerFrameShaderParameters();
+            
             void InitializeBuffers();
             void RenderBuffers();
-            void CalculateCameraPosition();
+            void CaculateCameraMatrix();
+            void CaculateLights();
             bool InitializeShader(const char* vsFilename, const char* fsFilename);
         private:
             unsigned int m_vertexShader;
             unsigned int m_fragmentShader;
             unsigned int m_shaderProgram;
 
-            const bool VSYNC_ENABLED = true;
-            const float screenDepth = 1000.0f;
-            const float screenNear = 0.1f;
-             struct DrawBatchContext {
-            GLuint  vao;
-            GLenum  mode;
-            GLenum  type;
-            GLsizei count;
+            struct DrawFrameContext
+            {
+                Matrix4X4f m_worldMatrix;
+                Matrix4X4f m_viewMatrix;
+                Matrix4X4f m_projectionMatrix;
+                Vector3f   m_lightPosition;
+                Vector4f   m_lightColor;
             };
 
-            std::vector<DrawBatchContext> m_VAO;
-            std::unordered_map<std::string, unsigned int> m_Buffers;
+            struct DrawBatchContext
+            {
+                GLuint vao;
+                GLenum mode;
+                GLenum type;
+                GLsizei count;
+                std::shared_ptr<Matrix4X4f> transform;
+            };
+            
+            DrawFrameContext m_DrawFrameContext;
+            std::vector<DrawBatchContext> m_DrawBatchContext;
+            std::vector<GLuint> m_Buffers;
 
 
-            int m_vertexCount, m_indexCount;
-            unsigned int m_vertexArrayId,m_vertexBufferId,m_indexBufferId;
-
-            float m_positionX =0, m_positionY = 0, m_positionZ = -10;
-            float m_rotationX =0, m_rotationY = 0, m_rotationZ = 0;
-            Matrix4X4f m_worldMatrix;
-            Matrix4X4f m_viewMatrix;
-            Matrix4X4f m_projectionMatrix;
+           
     };
 }

@@ -10,6 +10,7 @@
 #include "include/Transpose.h"
 #include "include/AddByElement.h"
 #include "include/SubByElement.h"
+#include "include/InverseMatrix4x4f.h"
 
 #ifndef PI
 #define PI 3.14159265358979323846f
@@ -435,12 +436,26 @@ namespace My {
     }
 
 
-    inline void BuildPerspectiveFovLHMatrix(Matrix4X4f& matrix, const float fieldOfView, const float screenAspect, const float screenNear, const float screenDepth)
+      inline void BuildPerspectiveFovLHMatrix(Matrix4X4f& matrix, const float fieldOfView, const float screenAspect, const float screenNear, const float screenDepth)
     {
         Matrix4X4f perspective = {{{
             { 1.0f / (screenAspect * tanf(fieldOfView * 0.5f)), 0.0f, 0.0f, 0.0f },
             { 0.0f, 1.0f / tanf(fieldOfView * 0.5f), 0.0f, 0.0f },
             { 0.0f, 0.0f, screenDepth / (screenDepth - screenNear), 1.0f },
+            { 0.0f, 0.0f, (-screenNear * screenDepth) / (screenDepth - screenNear), 0.0f }
+        }}};
+
+        matrix = perspective;
+
+        return;
+    }
+
+    inline void BuildPerspectiveFovRHMatrix(Matrix4X4f& matrix, const float fieldOfView, const float screenAspect, const float screenNear, const float screenDepth)
+    {
+        Matrix4X4f perspective = {{{
+            { 1.0f / (screenAspect * tanf(fieldOfView * 0.5f)), 0.0f, 0.0f, 0.0f },
+            { 0.0f, 1.0f / tanf(fieldOfView * 0.5f), 0.0f, 0.0f },
+            { 0.0f, 0.0f, screenDepth / (screenNear - screenDepth), -1.0f },
             { 0.0f, 0.0f, (-screenNear * screenDepth) / (screenDepth - screenNear), 0.0f }
         }}};
 
@@ -551,5 +566,10 @@ namespace My {
         }}};
 
         matrix = rotation;
+    }
+
+    inline bool InverseMatrix4X4f(Matrix4X4f& matrix)
+    {
+        return ispc::InverseMatrix4X4f(matrix);
     }
 }
