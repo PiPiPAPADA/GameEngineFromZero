@@ -20,8 +20,8 @@ namespace My {
             
             void InitializeBuffers();
             void RenderBuffers();
-            void CaculateCameraMatrix();
-            void CaculateLights();
+            void CalculateCameraMatrix();
+            void CalculateLights();
             bool InitializeShader(const char* vsFilename, const char* fsFilename);
         private:
             unsigned int m_vertexShader;
@@ -42,7 +42,7 @@ namespace My {
                 GLuint vao;
                 GLenum mode;
                 GLenum type;
-                GLsizei count;
+                std::vector<GLsizei> counts;
                 std::shared_ptr<Matrix4X4f> transform;
             };
             

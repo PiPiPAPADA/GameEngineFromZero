@@ -12,8 +12,8 @@ namespace My
         virtual int Initialize();
         virtual void Finalize();
         virtual void Tick();
-        void LoadOgexScene(const char* scene_file_name);
-        void LoadScene(const char* scene_file_name);
+        bool LoadOgexScene(const char* scene_file_name);
+        int LoadScene(const char* scene_file_name);
 
         const Scene& GetSceneForRendering();
 
