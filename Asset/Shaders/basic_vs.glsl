@@ -6,12 +6,14 @@
 /////////////////////
 in vec3 inputPosition;
 in vec3 inputNormal;
+in vec2 inputUV;
 
 //////////////////////
 // OUTPUT VARIABLES //
 //////////////////////
 out vec4 normal;
 out vec4 v;
+out vec2 uv;
 
 uniform mat4 modelMatrix;
 
@@ -36,4 +38,5 @@ void main(void)
 
     normal = transformMatrix * vec4(inputNormal, 0.0f);
     normal = viewMatrix * normal;
+	uv = inputUV;
 }

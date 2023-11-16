@@ -2,23 +2,16 @@
 #include <assert.h>
 #include <iostream>
 #include <memory>
-#include <vector>
 #include <string>
+#include <vector>
 #include "Guid.hpp"
 #include "Image.hpp"
 #include "portable.hpp"
 #include "geommath.hpp"
-namespace My{
-    namespace details
-    {
-        constexpr int32_t i32(const char* s,int32_t v){
-            return *s ? i32(s+1,v*256+*s) : v;
-        }
-    } // namespace details
-    constexpr int32_t operator "" _i32(const char* s, size_t) {
-        return details::i32(s, 0);
-    }
+#include "AssetLoader.hpp"
+#include "JPEG.hpp"
 
+namespace My {
     ENUM(SceneObjectType) {
         kSceneObjectTypeMesh    =   "MESH"_i32,
         kSceneObjectTypeMaterial=   "MATL"_i32,
@@ -27,54 +20,43 @@ namespace My{
         kSceneObjectTypeCamera  =   "CAMR"_i32,
         kSceneObjectTypeAnimator=   "ANIM"_i32,
         kSceneObjectTypeClip    =   "CLIP"_i32,
-        kSceneObjectTypeVertexArray = "VARR"_i32,
-        kSceneObjectTypeIndexArray = "VARR"_i32,
-        kSceneObjectTypeGeometry = "GEOM"_i32,
+        kSceneObjectTypeVertexArray   =   "VARR"_i32,
+        kSceneObjectTypeIndexArray    =   "VARR"_i32,
+        kSceneObjectTypeGeometry =  "GEOM"_i32,
     };
 
     std::ostream& operator<<(std::ostream& out, SceneObjectType type);
-    // std::ostream& operator<<(std::ostream& out, SceneObjectType type){
-    //     int32_t n = static_cast<int32_t>(type);
-    //     n = endian_net_unsigned_int<int32_t>(n);
-    //     char*c = reinterpret_cast<char*>(&n);
-    //     for(int i=0;i<sizeof(int32_t);i++){
-    //         out<<*c++;
-    //     }
-    //     return out;
-    // }
 
     using namespace xg;
-    class BaseSceneObject{
+    class BaseSceneObject
+    {
         protected:
             Guid m_Guid;
-            SceneObjectType m_type;
+            SceneObjectType m_Type;
         protected:
-            BaseSceneObject(SceneObjectType type): m_type(type) {m_Guid = newGuid();}
-            BaseSceneObject(Guid& guid,SceneObjectType type) :m_type(type),m_Guid(guid) {}
-            BaseSceneObject(Guid&& guid,SceneObjectType type) :m_type(type),m_Guid(std::move(guid)){}
-            BaseSceneObject(BaseSceneObject&& obj) :m_type(obj.m_type),m_Guid(std::move(obj.m_Guid)){}
-            BaseSceneObject& operator=(BaseSceneObject&& obj) {this->m_Guid=std::move(obj.m_Guid);this->m_type = obj.m_type; return *this;}
+            // can only be used as base class
+            BaseSceneObject(SceneObjectType type) : m_Type(type) { m_Guid = newGuid(); };
+            BaseSceneObject(Guid& guid, SceneObjectType type) : m_Guid(guid), m_Type(type) {};
+            BaseSceneObject(Guid&& guid, SceneObjectType type) : m_Guid(std::move(guid)), m_Type(type) {};
+            BaseSceneObject(BaseSceneObject&& obj) : m_Guid(std::move(obj.m_Guid)), m_Type(obj.m_Type) {};
+            BaseSceneObject& operator=(BaseSceneObject&& obj) { this->m_Guid = std::move(obj.m_Guid); this->m_Type = obj.m_Type; return *this; };
             virtual ~BaseSceneObject() {};
-
+            
         private:
-            BaseSceneObject() = delete;
+            // a type must be specified
+            BaseSceneObject() = delete; 
+            // can not be copied
             BaseSceneObject(BaseSceneObject& obj) = delete;
             BaseSceneObject& operator=(BaseSceneObject& obj) = delete;
-        
+
         public:
-            const Guid& GetGuid() const {return m_Guid;}
-            const SceneObjectType GetType() const {return m_type;}
+            const Guid& GetGuid() const { return m_Guid; };
+            const SceneObjectType GetType() const { return m_Type; };
+
         friend std::ostream& operator<<(std::ostream& out, const BaseSceneObject& obj);
-        // friend std::ostream& operator<<(std::ostream& out, const BaseSceneObject& obj){
-        //     out<<"SceneObject"<<std::endl;
-        //     out<<"-----------"<<std::endl;
-        //     out<<"GUID: "<<obj.m_Guid<<std::endl;
-        //     out<<"Type: "<<obj.m_type<<std::endl;
-        //     return out;
-        // }   
     };
 
-    ENUM(VertexDataType){
+    ENUM(VertexDataType) {
         kVertexDataTypeFloat1    = "FLT1"_i32,
         kVertexDataTypeFloat2    = "FLT2"_i32,
         kVertexDataTypeFloat3    = "FLT3"_i32,
@@ -86,36 +68,24 @@ namespace My{
     };
 
     std::ostream& operator<<(std::ostream& out, VertexDataType type);
-    // std::ostream& operator<<(std::ostream& out, VertexDataType type){
-    //     int32_t n = static_cast<int32_t>(type);
-    //     n = endian_net_unsigned_int<int32_t>(n);
-    //     char* c = reinterpret_cast<char*> (&n);
 
-    //     for(size_t i=0; i< sizeof(int32_t);i++)
-    //         out<<*c++;
-    //     return out;
-    // }
+    class SceneObjectVertexArray 
+    {
+        protected:
+            const std::string m_strAttribute;
+            const uint32_t    m_nMorphTargetIndex;
+            const VertexDataType m_DataType;
 
-    class SceneObjectVertexArray{
-    protected:
-        const std::string m_Attribute;
-        const uint32_t m_MorphTargetIndex;
-        const VertexDataType m_DataType;
+            const void*      m_pData;
 
-        const void* m_pDataFloat;
+            const size_t     m_szData;
 
-        // union 
-        // {
-        //     float*  m_pDataFloat;
-        //     double* m_pDataDouble;
-        // };
-        const size_t m_szData;
-    public:
-        SceneObjectVertexArray(const char* attr="",const uint32_t morph_index=0, const VertexDataType data_type=VertexDataType::kVertexDataTypeFloat3,const void* data = nullptr, const size_t data_size=0):  
-            m_Attribute(attr),m_MorphTargetIndex(morph_index),m_DataType(data_type),m_pDataFloat(data),m_szData(data_size) {};
-        SceneObjectVertexArray(SceneObjectVertexArray& arr) = default;
-        SceneObjectVertexArray(SceneObjectVertexArray&& arr)= default;
-        const std::string& GetAttributeName() const { return m_Attribute; };
+        public:
+            SceneObjectVertexArray(const char* attr = "", const uint32_t morph_index = 0, const VertexDataType data_type = VertexDataType::kVertexDataTypeFloat3, const void* data = nullptr, const size_t data_size = 0) : m_strAttribute(attr), m_nMorphTargetIndex(morph_index), m_DataType(data_type), m_pData(data), m_szData(data_size) {};
+            SceneObjectVertexArray(SceneObjectVertexArray& arr) = default; 
+            SceneObjectVertexArray(SceneObjectVertexArray&& arr) = default; 
+
+            const std::string& GetAttributeName() const { return m_strAttribute; };
             VertexDataType GetDataType() const { return m_DataType; };
             size_t GetDataSize() const 
             { 
@@ -142,7 +112,7 @@ namespace My{
 
                 return size;
             }; 
-            const void* GetData() const { return m_pDataFloat; };
+            const void* GetData() const { return m_pData; };
             size_t GetVertexCount() const
             {
                 size_t size = m_szData;
@@ -180,57 +150,38 @@ namespace My{
 
                 return size;
             }
-    friend std::ostream& operator<<(std::ostream& out, const SceneObjectVertexArray& obj);
-    // friend std::ostream& operator<<(std::ostream& out, const SceneObjectVertexArray& obj)
-    // {
-    //         out << "Attribute: " << obj.m_Attribute << std::endl;
-    //         out << "Morph Target Index: 0x" << obj.m_MorphTargetIndex << std::endl;
-    //         out << "Data Type: " << obj.m_DataType << std::endl;
-    //         out << "Data Size: 0x" << obj.m_szData << std::endl;
-    //         out << "Data: ";
-    //         for(size_t i = 0; i < obj.m_szData; i++)
-    //         {
-    //             out << *(reinterpret_cast<const float*>(obj.m_pDataFloat) + i) << ' ';
-    //         }
 
-    //         return out;
-    // }
-    
+        friend std::ostream& operator<<(std::ostream& out, const SceneObjectVertexArray& obj);
     };
 
-    ENUM(IndexDataType){
-        kIndexDataTypeInt8  = "I8 "_i32,
+    ENUM(IndexDataType) {
+        kIndexDataTypeInt8  = "I8  "_i32,
         kIndexDataTypeInt16 = "I16 "_i32,
         kIndexDataTypeInt32 = "I32 "_i32,
         kIndexDataTypeInt64 = "I64 "_i32,
     };
+
     std::ostream& operator<<(std::ostream& out, IndexDataType type);
-    // std::ostream& operator<<(std::ostream& out, IndexDataType type)
-    // {
-    //     int32_t n = static_cast<int32_t>(type);
-    //     n = endian_net_unsigned_int<int32_t>(n);
-    //     char* c = reinterpret_cast<char*>(&n);
-         
-    //     for (size_t i = 0; i < sizeof(int32_t); i++) {
-    //         out << *c++;
-    //     }
 
-    //     return out;
-    // }
-    class  SceneObjectIndexArray {
-    protected:
-        const uint32_t m_nMaterialIndex;
-        const size_t m_szRestartIndex;
-        const IndexDataType m_DataType;
+    class SceneObjectIndexArray
+    {
+        protected:
+            const uint32_t    m_nMaterialIndex;
+            const size_t      m_szRestartIndex;
+            const IndexDataType m_DataType;
 
-        const void* m_pData;
-        const size_t m_szData;
-    public:
-       SceneObjectIndexArray(const uint32_t material_index = 0, const size_t restart_index = 0, const IndexDataType data_type = IndexDataType::kIndexDataTypeInt16, const void* data = nullptr, const size_t data_size = 0) 
+            const void*       m_pData;
+
+            const size_t      m_szData;
+
+        public:
+            SceneObjectIndexArray(const uint32_t material_index = 0, const size_t restart_index = 0, const IndexDataType data_type = IndexDataType::kIndexDataTypeInt16, const void* data = nullptr, const size_t data_size = 0) 
                 : m_nMaterialIndex(material_index), m_szRestartIndex(restart_index), m_DataType(data_type), m_pData(data), m_szData(data_size) {};
             SceneObjectIndexArray(SceneObjectIndexArray& arr) = default;
             SceneObjectIndexArray(SceneObjectIndexArray&& arr) = default;
-         const IndexDataType GetIndexType() const { return m_DataType; };
+
+            const uint32_t GetMaterialIndex() const { return m_nMaterialIndex; };
+            const IndexDataType GetIndexType() const { return m_DataType; };
             const void* GetData() const { return m_pData; };
             size_t GetDataSize() const 
             { 
@@ -262,41 +213,11 @@ namespace My{
             {
                 return m_szData;
             }
+
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectIndexArray& obj);
-        // friend std::ostream& operator<<(std::ostream& out, const SceneObjectIndexArray& obj)
-        // {
-        //     out << "Material Index: 0x" << obj.m_nMaterialIndex << std::endl;
-        //     out << "Restart Index: 0x" << obj.m_szRestartIndex << std::endl;
-        //     out << "Data Type: " << obj.m_DataType << std::endl;
-        //     out << "Data Size: 0x" << obj.m_szData << std::endl;
-        //     out << "Data: ";
-        //     for(size_t i = 0; i < obj.m_szData; i++)
-        //     {
-        //         switch(obj.m_DataType)
-        //         {
-        //             case IndexDataType::kIndexDataTypeInt8:
-        //                 out << "0x" << *(reinterpret_cast<const uint8_t*>(obj.m_pData) + i) << ' ';;
-        //                 break;
-        //             case IndexDataType::kIndexDataTypeInt16:
-        //                 out << "0x" << *(reinterpret_cast<const uint16_t*>(obj.m_pData) + i) << ' ';;
-        //                 break;
-        //             case IndexDataType::kIndexDataTypeInt32:
-        //                 out << "0x" << *(reinterpret_cast<const uint32_t*>(obj.m_pData) + i) << ' ';;
-        //                 break;
-        //             case IndexDataType::kIndexDataTypeInt64:
-        //                 out << "0x" << *(reinterpret_cast<const uint64_t*>(obj.m_pData) + i) << ' ';;
-        //                 break;
-        //             default:
-        //                 ;
-        //         }
-        //     }
-
-
-        //     return out;
-        // }
     };
 
-    typedef enum _PrimitiveType : int32_t {
+	ENUM(PrimitiveType) {
 		kPrimitiveTypeNone = "NONE"_i32,        ///< No particular primitive type.
 		kPrimitiveTypePointList = "PLST"_i32,   ///< For N>=0, vertex N renders a point.
 		kPrimitiveTypeLineList = "LLST"_i32,    ///< For N>=0, vertices [N*2+0, N*2+1] render a line.
@@ -314,36 +235,23 @@ namespace My{
 		kPrimitiveTypeQuadList = "QLST"_i32,    ///< For N>=0, vertices [N*4+0, N*4+1, N*4+2] and [N*4+0, N*4+2, N*4+3] render triangles.
 		kPrimitiveTypeQuadStrip = "QSTR"_i32,   ///< For N>=0, vertices [N*2+0, N*2+1, N*2+3] and [N*2+0, N*2+3, N*2+2] render triangles.
 		kPrimitiveTypePolygon = "POLY"_i32,     ///< For N>=0, vertices [0, N+1, N+2] render a triangle.
-	} PrimitiveType;
+	};
 
     std::ostream& operator<<(std::ostream& out, PrimitiveType type);
-    // std::ostream& operator<<(std::ostream& out, PrimitiveType type)
-    // {
-    //     int32_t n = static_cast<int32_t>(type);
-    //     n = endian_net_unsigned_int<int32_t>(n);
-    //     char* c = reinterpret_cast<char*>(&n);
-         
-    //     for (size_t i = 0; i < sizeof(int32_t); i++) {
-    //         out << *c++;
-    //     }
-
-    //     return out;
-    // }
   
-
-    class SceneObjectMesh : public BaseSceneObject{
+    class SceneObjectMesh : public BaseSceneObject
+    {
         protected:
-            std::vector<SceneObjectIndexArray> m_IndexArray;
+            std::vector<SceneObjectIndexArray>  m_IndexArray;
             std::vector<SceneObjectVertexArray> m_VertexArray;
-            PrimitiveType m_PrimitiveType;
+			PrimitiveType	m_PrimitiveType;
 
-            bool m_bVisible ;
-            bool m_bShadow  ;
-            bool m_bMotionBlur ;
+            bool        m_bVisible;
+            bool        m_bShadow;
+            bool        m_bMotionBlur;
+            
         public:
-            SceneObjectMesh(bool visible = true, bool shadow = true, bool motion_blur = true) : BaseSceneObject(SceneObjectType::kSceneObjectTypeMesh), m_bVisible(visible), m_bShadow(shadow), m_bMotionBlur(motion_blur){};
-            void AddIndexArray(SceneObjectIndexArray&& array) {m_IndexArray.push_back(std::move(array));}
-            void AddVertexArray(SceneObjectVertexArray&& array) {m_VertexArray.push_back(std::move(array));}
+            SceneObjectMesh(bool visible = true, bool shadow = true, bool motion_blur = true) : BaseSceneObject(SceneObjectType::kSceneObjectTypeMesh), m_bVisible(visible), m_bShadow(shadow), m_bMotionBlur(motion_blur) {};
             SceneObjectMesh(SceneObjectMesh&& mesh)
                 : BaseSceneObject(SceneObjectType::kSceneObjectTypeMesh), 
                 m_IndexArray(std::move(mesh.m_IndexArray)),
@@ -354,7 +262,10 @@ namespace My{
                 m_bMotionBlur(mesh.m_bMotionBlur)
             {
             };
-            void SetPrimitiveType(PrimitiveType type) { m_PrimitiveType = type;}
+            void AddIndexArray(SceneObjectIndexArray&& array) { m_IndexArray.push_back(std::move(array)); };
+            void AddVertexArray(SceneObjectVertexArray&& array) { m_VertexArray.push_back(std::move(array)); };
+			void SetPrimitiveType(PrimitiveType type) { m_PrimitiveType = type;  };
+
             size_t GetIndexGroupCount() const { return m_IndexArray.size(); };
             size_t GetIndexCount(const size_t index) const { return (m_IndexArray.empty()? 0 : m_IndexArray[index].GetIndexCount()); };
             size_t GetVertexCount() const { return (m_VertexArray.empty()? 0 : m_VertexArray[0].GetVertexCount()); };
@@ -362,60 +273,54 @@ namespace My{
             const SceneObjectVertexArray& GetVertexPropertyArray(const size_t index) const { return m_VertexArray[index]; };
             const SceneObjectIndexArray& GetIndexArray(const size_t index) const { return m_IndexArray[index]; };
             const PrimitiveType& GetPrimitiveType() { return m_PrimitiveType; };
-        
-        friend std::ostream& operator<<(std::ostream& out, const SceneObjectMesh& obj);
-        // friend std::ostream& operator<<(std::ostream& out, const SceneObjectMesh& obj){
-        //     out << static_cast<const BaseSceneObject&>(obj) << std::endl;
-        //     out << "Primitive Type: " << obj.m_PrimitiveType << std::endl;
-        //     out << "This mesh contains 0x" << obj.m_VertexArray.size() << " vertex properties." << std::endl;
-        //     for (size_t i = 0; i < obj.m_VertexArray.size(); i++) {
-        //         out << obj.m_VertexArray[i] << std::endl;
-        //     }
-        //     out << "This mesh contains 0x" << obj.m_IndexArray.size() << " index arrays." << std::endl;
-        //     for (size_t i = 0; i < obj.m_IndexArray.size(); i++) {
-        //         out << obj.m_IndexArray[i] << std::endl;
-        //     }
-        //     out << "Visible: " << obj.m_bVisible << std::endl;
-        //     out << "Shadow: " << obj.m_bShadow << std::endl;
-        //     out << "Motion Blur: " << obj.m_bMotionBlur << std::endl;
 
-        //     return out;
-        // }
+        friend std::ostream& operator<<(std::ostream& out, const SceneObjectMesh& obj);
     };
 
-     class SceneObjectTexture : public BaseSceneObject
+    class SceneObjectTexture : public BaseSceneObject
     {
         protected:
-            uint32_t m_nTexCoordIndex;
             std::string m_Name;
+            uint32_t m_nTexCoordIndex;
             std::shared_ptr<Image> m_pImage;
             std::vector<Matrix4X4f> m_Transforms;
 
         public:
             SceneObjectTexture() : BaseSceneObject(SceneObjectType::kSceneObjectTypeTexture), m_nTexCoordIndex(0) {};
-            SceneObjectTexture(std::string& name) : BaseSceneObject(SceneObjectType::kSceneObjectTypeTexture), m_nTexCoordIndex(0), m_Name(name) {};
+            SceneObjectTexture(const std::string& name) : BaseSceneObject(SceneObjectType::kSceneObjectTypeTexture), m_Name(name), m_nTexCoordIndex(0) {};
             SceneObjectTexture(uint32_t coord_index, std::shared_ptr<Image>& image) : BaseSceneObject(SceneObjectType::kSceneObjectTypeTexture), m_nTexCoordIndex(coord_index), m_pImage(image) {};
             SceneObjectTexture(uint32_t coord_index, std::shared_ptr<Image>&& image) : BaseSceneObject(SceneObjectType::kSceneObjectTypeTexture), m_nTexCoordIndex(coord_index), m_pImage(std::move(image)) {};
             SceneObjectTexture(SceneObjectTexture&) = default;
             SceneObjectTexture(SceneObjectTexture&&) = default;
-            void SetName(std::string& name) { m_Name = name; };
-            void SetName(std::string&& name) { m_Name = std::move(name); }
             void AddTransform(Matrix4X4f& matrix) { m_Transforms.push_back(matrix); };
+            void SetName(const std::string& name) { m_Name = name; };
+            void SetName(std::string&& name) { m_Name = std::move(name); };
+            const std::string& GetName() const { return m_Name; };
+            void LoadTexture() {
+                if (!m_pImage)
+                {
+                    // we should lookup if the texture has been loaded already to prevent
+                    // duplicated load. This could be done in Asset Loader Manager.
+                    Buffer buf = g_pAssetLoader->SyncOpenAndReadBinary(m_Name.c_str());
+                    JfifParser jfif_parser;
+                    m_pImage = std::make_shared<Image>(jfif_parser.Parser(buf));
+                }
+            }
+            const Image& GetTextureImage() 
+            { 
+                if (!m_pImage)
+                {
+                    Buffer buf = g_pAssetLoader->SyncOpenAndReadBinary(m_Name.c_str());
+                    JfifParser jfif_parser;
+                    m_pImage = std::make_shared<Image>(jfif_parser.Parser(buf));
+                }
+
+                return *m_pImage; 
+            };
 
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectTexture& obj);
-        // friend std::ostream& operator<<(std::ostream& out, const SceneObjectTexture& obj)
-        // {
-        //     out << static_cast<const BaseSceneObject&>(obj) << std::endl;
-        //     out << "Coord Index: " << obj.m_nTexCoordIndex << std::endl;
-        //     out << "Name: " << obj.m_Name << std::endl;
-        //     if (obj.m_pImage)
-        //         out << "Image: " << *obj.m_pImage << std::endl;
-
-        //     return out;
-        // }
     };
 
-   
     template <typename T>
     struct ParameterValueMap
     {
@@ -427,12 +332,12 @@ namespace My{
         ParameterValueMap(const T value) : Value(value) {};
         ParameterValueMap(const std::shared_ptr<SceneObjectTexture>& value) : ValueMap(value) {};
 
-        ParameterValueMap(const ParameterValueMap& rhs) = default;
+        ParameterValueMap(const ParameterValueMap<T>& rhs) = default;
 
-        ParameterValueMap(ParameterValueMap&& rhs) = default;
+        ParameterValueMap(ParameterValueMap<T>&& rhs) = default;
 
-        ParameterValueMap& operator=(const ParameterValueMap& rhs) = default;
-        ParameterValueMap& operator=(ParameterValueMap&& rhs) = default;
+        ParameterValueMap& operator=(const ParameterValueMap<T>& rhs) = default;
+        ParameterValueMap& operator=(ParameterValueMap<T>&& rhs) = default;
         ParameterValueMap& operator=(const std::shared_ptr<SceneObjectTexture>& rhs) 
         {
             ValueMap = rhs;
@@ -441,7 +346,7 @@ namespace My{
 
         ~ParameterValueMap() = default;
 
-        friend std::ostream& operator<<(std::ostream& out, const ParameterValueMap& obj)
+        friend std::ostream& operator<<(std::ostream& out, const ParameterValueMap<T>& obj)
         {
             out << "Parameter Value: " << obj.Value << std::endl;
             if (obj.ValueMap) {
@@ -464,103 +369,183 @@ namespace My{
             Parameter   m_Metallic;
             Parameter   m_Roughness;
             Normal      m_Normal;
-            Parameter   m_Specular;
+            Color       m_Specular;
+            Parameter   m_SpecularPower;
             Parameter   m_AmbientOcclusion;
+            Color       m_Opacity;
+            Color       m_Transparency;
+            Color       m_Emission;
 
         public:
-            SceneObjectMaterial(const std::string& name) : BaseSceneObject(SceneObjectType::kSceneObjectTypeMaterial), m_Name(name) {};
-            SceneObjectMaterial(std::string&& name) : BaseSceneObject(SceneObjectType::kSceneObjectTypeMaterial), m_Name(std::move(name)) {};
-           
-            SceneObjectMaterial(const std::string& name = "", Color&& base_color = Vector4f(1.0f), Parameter&& metallic = 0.0f, Parameter&& roughness = 0.0f, Normal&& normal = Vector3f(0.0f, 0.0f, 1.0f), Parameter&& specular = 0.0f, Parameter&& ao = 0.0f) 
-                : BaseSceneObject(SceneObjectType::kSceneObjectTypeMaterial),m_Name(name), m_BaseColor(std::move(base_color)), m_Metallic(std::move(metallic)), m_Roughness(std::move(roughness)), m_Normal(std::move(normal)), m_Specular(std::move(specular)), m_AmbientOcclusion(std::move(ao)) {};
+            SceneObjectMaterial(void) 
+                : BaseSceneObject(SceneObjectType::kSceneObjectTypeMaterial), 
+                m_Name(""), 
+                m_BaseColor(Vector4f(1.0f)), 
+                m_Metallic(0.0f), 
+                m_Roughness(0.0f), 
+                m_Normal(Vector3f(0.0f, 0.0f, 1.0f)), 
+                m_Specular(0.0f), 
+                m_SpecularPower(1.0f), 
+                m_AmbientOcclusion(1.0f), 
+                m_Opacity(1.0f), 
+                m_Transparency(0.0f), 
+                m_Emission(0.0f) {};
+            SceneObjectMaterial(const char* name) : SceneObjectMaterial()
+                { m_Name = name; };
+            SceneObjectMaterial(const std::string& name) : SceneObjectMaterial()
+                { m_Name = name; };
+            SceneObjectMaterial(std::string&& name) : SceneObjectMaterial()
+                { m_Name = std::move(name); };
+
+            const std::string& GetName() const { return m_Name; };
+            const Color& GetBaseColor() const { return m_BaseColor; };
+            const Color& GetSpecularColor() const { return m_Specular; };
+            const Parameter& GetSpecularPower() const { return m_SpecularPower; };
             void SetName(const std::string& name) { m_Name = name; };
             void SetName(std::string&& name) { m_Name = std::move(name); };
-            void SetColor(std::string& attrib, Vector4f& color) 
+            void SetColor(const std::string& attrib, const Vector4f& color) 
             { 
-                if(attrib == "deffuse") {
+                if(attrib == "diffuse") {
                     m_BaseColor = Color(color); 
+                }
+
+                if(attrib == "specular") {
+                    m_Specular = Color(color); 
+                }
+
+                if(attrib == "emission") {
+                    m_Emission = Color(color); 
+                }
+
+                if(attrib == "opacity") {
+                    m_Opacity = Color(color); 
+                }
+
+                if(attrib == "transparency") {
+                    m_Transparency = Color(color); 
                 }
             };
 
-            void SetParam(std::string& attrib, float param) 
+            void SetParam(const std::string& attrib, const float param) 
             { 
+
+                if(attrib == "specular_power") {
+                    m_SpecularPower = Parameter(param); 
+                }
             };
 
-            void SetTexture(std::string& attrib, std::string& textureName) 
+            void SetTexture(const std::string& attrib, const std::string& textureName) 
             { 
                 if(attrib == "diffuse") {
                     m_BaseColor = std::make_shared<SceneObjectTexture>(textureName); 
                 }
+
+                if(attrib == "specular") {
+                    m_Specular = std::make_shared<SceneObjectTexture>(textureName); 
+                }
+
+                if(attrib == "specular_power") {
+                    m_SpecularPower = std::make_shared<SceneObjectTexture>(textureName); 
+                }
+
+                if(attrib == "emission") {
+                    m_Emission = std::make_shared<SceneObjectTexture>(textureName); 
+                }
+
+                if(attrib == "opacity") {
+                    m_Opacity = std::make_shared<SceneObjectTexture>(textureName); 
+                }
+
+                if(attrib == "transparency") {
+                    m_Transparency = std::make_shared<SceneObjectTexture>(textureName); 
+                }
+
+                if(attrib == "normal") {
+                    m_Normal = std::make_shared<SceneObjectTexture>(textureName); 
+                }
             };
 
-            void SetTexture(std::string& attrib, std::shared_ptr<SceneObjectTexture>& texture) 
+            void SetTexture(const std::string& attrib, const std::shared_ptr<SceneObjectTexture>& texture) 
             { 
                 if(attrib == "diffuse") {
                     m_BaseColor = texture; 
                 }
-            };
-        friend std::ostream& operator<<(std::ostream& out, const SceneObjectMaterial& obj);       
-        // friend std::ostream& operator<<(std::ostream& out, const SceneObjectMaterial& obj){            
-        //     out <<static_cast<const BaseSceneObject&>(obj)<<std::endl;
-        //     out << "Name: " << obj.m_Name << std::endl;
-        //     out << "Albedo: " << obj.m_BaseColor << std::endl;
-        //     out << "Metallic: " << obj.m_Metallic << std::endl;
-        //     out << "Roughness: " << obj.m_Roughness << std::endl;
-        //     out << "Normal: " << obj.m_Normal << std::endl;
-        //     out << "Specular: " << obj.m_Specular << std::endl;
-        //     out << "Ambient Occlusion:: " << obj.m_AmbientOcclusion << std::endl;
 
-        //     return out;
-        // }
+                if(attrib == "specular") {
+                    m_Specular = texture;
+                }
+
+                if(attrib == "specular_power") {
+                    m_SpecularPower = texture;
+                }
+
+                if(attrib == "emission") {
+                    m_Emission = texture;
+                }
+
+                if(attrib == "opacity") {
+                    m_Opacity = texture;
+                }
+
+                if(attrib == "transparency") {
+                    m_Transparency = texture;
+                }
+
+                if(attrib == "normal") {
+                    m_Normal = texture;
+                }
+            };
+
+            void LoadTextures()
+            {
+                if (m_BaseColor.ValueMap) {
+                    m_BaseColor.ValueMap->LoadTexture();
+                }
+            };
+
+        friend std::ostream& operator<<(std::ostream& out, const SceneObjectMaterial& obj);
     };
 
-    class SceneObjectGeometry : public BaseSceneObject{
+    class SceneObjectGeometry : public BaseSceneObject
+    {
         protected:
-             std::vector<std::shared_ptr<SceneObjectMesh>> m_Mesh;
-            bool        m_bVisible;
+            std::vector<std::shared_ptr<SceneObjectMesh>> m_Mesh;
+			bool        m_bVisible;
 			bool        m_bShadow;
 			bool        m_bMotionBlur;
+
         public:
-            void SetVisibility(bool visible) { m_bVisible = visible; };
+            SceneObjectGeometry(void) : BaseSceneObject(SceneObjectType::kSceneObjectTypeGeometry) {};
+
+			void SetVisibility(bool visible) { m_bVisible = visible; };
 			const bool Visible() { return m_bVisible; };
 			void SetIfCastShadow(bool shadow) { m_bShadow = shadow; };
 			const bool CastShadow() { return m_bShadow; };
 			void SetIfMotionBlur(bool motion_blur) { m_bMotionBlur = motion_blur; };
 			const bool MotionBlur() { return m_bMotionBlur; };
-            void AddMesh(std::shared_ptr<SceneObjectMesh>& mesh) { m_Mesh.push_back(std::move(mesh)); };
-            SceneObjectGeometry(void) : BaseSceneObject(SceneObjectType::kSceneObjectTypeGeometry) {};
-            const std::weak_ptr<SceneObjectMesh> GetMesh() {return (m_Mesh.empty()? nullptr : m_Mesh[0]);};
-            const std::weak_ptr<SceneObjectMesh> GetMeshLOD(size_t lod) {return (lod < m_Mesh.size() ? m_Mesh[lod] : nullptr);};
-        friend std::ostream& operator<<(std::ostream& out, const SceneObjectGeometry& obj);
-        // friend std::ostream& operator<<(std::ostream& out, const SceneObjectGeometry& obj)
-        // {
-        //     auto count = obj.m_Mesh.size();
-        //     for(decltype(count) i = 0; i < count; i++) {
-        //         out << "Mesh: " << *obj.m_Mesh[i] << std::endl;
-        //     }
 
-        //     return out;
-        // }
+            void AddMesh(std::shared_ptr<SceneObjectMesh>& mesh) { m_Mesh.push_back(std::move(mesh)); };
+            const std::weak_ptr<SceneObjectMesh> GetMesh() { return (m_Mesh.empty()? nullptr : m_Mesh[0]); };
+            const std::weak_ptr<SceneObjectMesh> GetMeshLOD(size_t lod) { return (lod < m_Mesh.size()? m_Mesh[lod] : nullptr); };
+
+        friend std::ostream& operator<<(std::ostream& out, const SceneObjectGeometry& obj);
     };
 
-    //Intensity, Distance
-    typedef float (*AttenFunc)(float,float);
-    float DefaultAttenFunc(float intensity, float distance);
-    // float DefaultAttenFunc(float intensity, float distance){
-    //     return intensity/(1+distance);
-    // }
+    typedef float (*AttenFunc)(float /* Intensity */, float /* Distance */);
 
-    class SceneObjectLight : public BaseSceneObject{
-    protected:
-        Color  m_LightColor;
-        float  m_Intensity;
-        AttenFunc m_LightAttenuation;
-        float  m_fNearClipDistance;
-        float  m_fFarClipDistance;
-        bool   m_bCastShadows;
-        std::string m_strTexture;
-    public:
-        void SetIfCastShadow(bool shadow) { m_bCastShadows = shadow; };
+    float DefaultAttenFunc(float intensity, float distance);
+
+    class SceneObjectLight : public BaseSceneObject
+    {
+        protected:
+            Color       m_LightColor;
+            float       m_fIntensity;
+            AttenFunc   m_LightAttenuation;
+            bool        m_bCastShadows;
+            std::string m_strTexture;
+
+        public:
+			void SetIfCastShadow(bool shadow) { m_bCastShadows = shadow; };
 
             void SetColor(std::string& attrib, Vector4f& color) 
             { 
@@ -572,7 +557,7 @@ namespace My{
             void SetParam(std::string& attrib, float param) 
             { 
                 if(attrib == "intensity") {
-                    m_Intensity = param; 
+                    m_fIntensity = param; 
                 }
             };
 
@@ -582,28 +567,42 @@ namespace My{
                     m_strTexture = textureName;
                 }
             };
-            void SetAttenuation(AttenFunc func){
+
+            void SetAttenuation(AttenFunc func)
+            {
                 m_LightAttenuation = func;
             }
-        const Color& GetColor() { return m_LightColor; };
-        float GetIntensity() { return m_Intensity; };
-    protected:
-        SceneObjectLight(Color&& color = Vector4f(1.0f),float intensity =10.0f, AttenFunc atten_func = DefaultAttenFunc, float near_clip = 1.0f, float far_clip = 100.0f, bool cast_shadows = false ) : BaseSceneObject(SceneObjectType::kSceneObjectTypeLight),m_LightColor(color),m_Intensity(intensity),m_LightAttenuation(atten_func), m_fNearClipDistance(near_clip), m_fFarClipDistance(far_clip), m_bCastShadows(cast_shadows) {};
 
-    friend std::ostream& operator<<(std::ostream& out, const SceneObjectLight& obj);
-    // friend std::ostream& operator<<(std::ostream& out, const SceneObjectLight& obj){
-    //         out << static_cast<const BaseSceneObject&>(obj) << std::endl;
-    //         out << "Color: " << obj.m_LightColor << std::endl;
-    //         out << "Intensity: " << obj.m_Intensity << std::endl;
-    //         out << "Near Clip Distance: " << obj.m_fNearClipDistance << std::endl;
-    //         out << "Far Clip Distance: " << obj.m_fFarClipDistance << std::endl;
-    //         out << "Cast Shadows: " << obj.m_bCastShadows << std::endl;
+            const Color& GetColor() { return m_LightColor; };
+            float GetIntensity() { return m_fIntensity; };
 
-    //         return out;
-    // }
+        protected:
+            // can only be used as base class of delivered lighting objects
+            SceneObjectLight(void) : BaseSceneObject(SceneObjectType::kSceneObjectTypeLight), m_LightColor(Vector4f(1.0f)), m_fIntensity(100.0f), m_LightAttenuation(DefaultAttenFunc), m_bCastShadows(false) {};
 
+        friend std::ostream& operator<<(std::ostream& out, const SceneObjectLight& obj);
     };
-     class SceneObjectInfiniteLight : public SceneObjectLight
+
+    class SceneObjectOmnLight : public SceneObjectLight
+    {
+        public:
+            using SceneObjectLight::SceneObjectLight;
+
+        friend std::ostream& operator<<(std::ostream& out, const SceneObjectOmnLight& obj);
+    };
+
+    class SceneObjectSpotLight : public SceneObjectLight
+    {
+        protected:
+            float   m_fConeAngle;
+            float   m_fPenumbraAngle;
+        public:
+            SceneObjectSpotLight(void) : SceneObjectLight(), m_fConeAngle(PI / 4.0f), m_fPenumbraAngle(PI / 3.0f) {};
+
+        friend std::ostream& operator<<(std::ostream& out, const SceneObjectSpotLight& obj);
+    };
+
+    class SceneObjectInfiniteLight : public SceneObjectLight
     {
         public:
             using SceneObjectLight::SceneObjectLight;
@@ -611,42 +610,13 @@ namespace My{
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectInfiniteLight& obj);
     };
 
-
-    class SceneObjectOmnLight : public SceneObjectLight{
-        public:
-            using SceneObjectLight::SceneObjectLight;
-        friend std::ostream& operator<<(std::ostream&  out, const SceneObjectOmnLight& obj);
-        // friend std::ostream& operator<<(std::ostream&  out, const SceneObjectOmnLight& obj){
-        //     out<< static_cast<const SceneObjectLight&>(obj) <<std::endl;
-        //     out<<"Light Type: Omn "<<std::endl;
-
-        //     return out;
-        // }
-    };
-
-    class SceneObjectSpotLight : public SceneObjectLight{
-        protected:
-            float m_fConeAngle;
-            float m_fPenumbraAngle;
-        public:
-            
-           SceneObjectSpotLight(Color&& color = Vector4f(1.0f),float intensity = 10.0f, AttenFunc atten_func = DefaultAttenFunc, float near_clip = 1.0f, float far_clip = 100.0f, bool cast_shadows = false, float cone_angle = PI / 4.0f, float penumbra_angle = PI / 3.0f) : SceneObjectLight(std::move(color), intensity, atten_func, near_clip, far_clip, cast_shadows), m_fConeAngle(cone_angle), m_fPenumbraAngle(penumbra_angle) {};
-        friend std::ostream& operator<<(std::ostream& out, const SceneObjectSpotLight& obj);
-        // friend std::ostream& operator<<(std::ostream& out, const SceneObjectSpotLight& obj){
-        //     out << static_cast<const SceneObjectLight&>(obj) << std::endl;
-        //     out << "Light Type: Spot" << std::endl;
-        //     out << "Cone Angle: " << obj.m_fConeAngle << std::endl;
-        //     out << "Penumbra Angle: " << obj.m_fPenumbraAngle << std::endl;
-
-        //     return out;
-        // }
-    };  
-
-    class SceneObjectCamera : public BaseSceneObject{
+    class SceneObjectCamera : public BaseSceneObject
+    {
         protected:
             float m_fAspect;
             float m_fNearClipDistance;
             float m_fFarClipDistance;
+
         public:
             void SetColor(std::string& attrib, Vector4f& color) 
             { 
@@ -668,62 +638,47 @@ namespace My{
                 // TODO: extension
             };
 
-            float GetNearClipDistance() const { return m_fNearClipDistance;}
-            float GetFarClipDistance() const {return m_fFarClipDistance;}
+            float GetNearClipDistance() const { return m_fNearClipDistance; };
+            float GetFarClipDistance() const { return m_fFarClipDistance; };
 
-            SceneObjectCamera(float aspect = 16.0f / 9.0f, float near_clip = 1.0f, float far_clip = 100.0f) : BaseSceneObject(SceneObjectType::kSceneObjectTypeCamera), m_fAspect(aspect), m_fNearClipDistance(near_clip), m_fFarClipDistance(far_clip) {};
+        protected:
+            // can only be used as base class
+            SceneObjectCamera(void) : BaseSceneObject(SceneObjectType::kSceneObjectTypeCamera), m_fAspect(16.0f / 9.0f), m_fNearClipDistance(1.0f), m_fFarClipDistance(100.0f) {};
+
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectCamera& obj);
-        // friend std::ostream& operator<<(std::ostream& out, const SceneObjectCamera& obj)
-        // {
-        //     out << static_cast<const BaseSceneObject&>(obj) << std::endl;
-        //     out << "Aspect: " << obj.m_fAspect << std::endl;
-        //     out << "Near Clip Distance: " << obj.m_fNearClipDistance << std::endl;
-        //     out << "Far Clip Distance: " << obj.m_fFarClipDistance << std::endl;
-
-        //     return out;
-        // }
     };
 
-    class SceneObjectOrthogonalCamera : public SceneObjectCamera{
+    class SceneObjectOrthogonalCamera : public SceneObjectCamera
+    {
         public:
             using SceneObjectCamera::SceneObjectCamera;
-        
-        friend std::ostream& operator<<(std::ostream& out, const SceneObjectOrthogonalCamera& obj);
-        // friend std::ostream& operator<<(std::ostream& out, const SceneObjectOrthogonalCamera& obj){
-        //     out << static_cast<const SceneObjectCamera&>(obj) << std::endl;
-        //     out << "Camera Type: Orthogonal" << std::endl;
 
-        //     return out;
-        // }
+        friend std::ostream& operator<<(std::ostream& out, const SceneObjectOrthogonalCamera& obj);
     };
 
-    class SceneObjectPerspectiveCamera: public SceneObjectCamera{
+    class SceneObjectPerspectiveCamera : public SceneObjectCamera
+    {
         protected:
             float m_fFov;
+
         public:
-          void SetParam(std::string& attrib, float param) 
+            void SetParam(std::string& attrib, float param) 
             { 
                 // TODO: handle fovx, fovy
                 if(attrib == "fov") {
                     m_fFov = param; 
                 }
-                SceneObjectCamera::SetParam(attrib,param);
+                SceneObjectCamera::SetParam(attrib, param);
             };
-             SceneObjectPerspectiveCamera(float aspect = 16.0f / 9.0f, float near_clip = 1.0f, float far_clip = 100.0f, float fov = PI / 2.0) : SceneObjectCamera(aspect, near_clip, far_clip), m_fFov(fov) {};
-            float GetFov() const {return m_fFov;};
+
+        public:
+            SceneObjectPerspectiveCamera(float fov = PI / 2.0) : SceneObjectCamera(), m_fFov(fov) {};
+            float GetFov() const { return m_fFov; };
 
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectPerspectiveCamera& obj);
-        // friend std::ostream& operator<<(std::ostream& out, const SceneObjectPerspectiveCamera& obj)
-        // {
-        //     out << static_cast<const SceneObjectCamera&>(obj) << std::endl;
-        //     out << "Camera Type: Perspective" << std::endl;
-        //     out << "FOV: " << obj.m_fFov<< std::endl;
-
-        //     return out;
-        // }
     };
 
-      class SceneObjectTransform
+    class SceneObjectTransform
     {
         protected:
             Matrix4X4f m_matrix;
@@ -738,13 +693,6 @@ namespace My{
             operator const Matrix4X4f() const { return m_matrix; };
 
         friend std::ostream& operator<<(std::ostream& out, const SceneObjectTransform& obj);
-        // friend std::ostream& operator<<(std::ostream& out, const SceneObjectTransform& obj)
-        // {
-        //     out << "Transform Matrix: " << obj.m_matrix << std::endl;
-        //     out << "Is Object Local: " << obj.m_bSceneObjectOnly << std::endl;
-
-        //     return out;
-        // }
     };
 
     class SceneObjectTranslation : public SceneObjectTransform
@@ -830,5 +778,4 @@ namespace My{
                 MatrixScale(m_matrix, x, y, z);
             }
     };
-
 }

@@ -1,5 +1,5 @@
 set(FUNCTIONS CrossProduct  MulByElement Transpose Normalize
-              Transform AddByElement SubByElement InverseMatrix4x4f
+              Transform AddByElement SubByElement InverseMatrix4x4f DCT MatrixExchangeYandZ
         )
 
 foreach(FUNC IN LISTS FUNCTIONS)

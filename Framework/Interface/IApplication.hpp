@@ -11,6 +11,8 @@ namespace My{
             virtual void Tick() =0;
             // check application whether quit, quit was trick by os
             virtual bool IsQuit() =0;
+            virtual void SetCommandLineParameters(int argc, char** argv) = 0;
+            virtual void OnDraw() = 0;
             virtual GfxConfiguration& GetConfiguration() = 0;
             
     };

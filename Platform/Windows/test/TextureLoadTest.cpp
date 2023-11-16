@@ -7,6 +7,7 @@
 #include "SceneManager.hpp"
 #include "utility.hpp"
 #include "BMP.hpp"
+#include "JPEG.hpp"
 
 using namespace My;
 using namespace std;
@@ -16,7 +17,7 @@ namespace My {
     {
         public:
             using D2dGraphicsManager::D2dGraphicsManager;
-            void DrawBitmap(const Image image[], int32_t index);
+            void DrawBitmap(const Image image);
         private:
             ID2D1Bitmap* m_pBitmap = nullptr;
     };
@@ -24,15 +25,15 @@ namespace My {
     class TestApplication : public WindowsApplication
     {
     public:
-       using WindowsApplication::WindowsApplication;
-       virtual int Initialize();
-       virtual  void OnDraw();
+        using WindowsApplication::WindowsApplication;
+
+        virtual int Initialize();
+
+        virtual void OnDraw();
 
     private:
-        Image m_Image[2];
-    }; 
-    
-    
+        Image m_Image;
+    };
 }
 
 namespace My {
@@ -42,7 +43,6 @@ namespace My {
     MemoryManager*   g_pMemoryManager   = static_cast<MemoryManager*>(new MemoryManager);
     AssetLoader*     g_pAssetLoader     = static_cast<AssetLoader*>(new AssetLoader);
     SceneManager*    g_pSceneManager    = static_cast<SceneManager*>(new SceneManager);
-
 }
 
 int My::TestApplication::Initialize()
@@ -50,18 +50,20 @@ int My::TestApplication::Initialize()
     int result;
 
     result = WindowsApplication::Initialize();
-
+    cout <<result<<endl;
     if (result == 0) {
-        BmpParser   parser;
-        Buffer buf = g_pAssetLoader->SyncOpenAndReadBinary("Textures/icelogo-color.bmp");
+        cout<<m_nArgC<<endl;
+        Buffer buf;
 
-        m_Image[0] = parser.Parser(buf);
+        JfifParser  jfif_parser;
+        if (m_nArgC > 1) {
+            buf = g_pAssetLoader->SyncOpenAndReadBinary(m_ppArgV[1]);
+        } else {
+            buf = g_pAssetLoader->SyncOpenAndReadBinary("Textures/jpeg_decoder_test.jpg");
+        }
+        cout<<buf.GetDataSize()<<endl;
 
-        buf = g_pAssetLoader->SyncOpenAndReadBinary("Textures/icelogo-normal.bmp");
-
-        m_Image[1] = parser.Parser(buf);
-
-        // std::cout<<m_Image[1].Width<<m_Image[1].Height<<std::endl;
+        m_Image = jfif_parser.Parser(buf);
     }
 
     return result;
@@ -69,17 +71,14 @@ int My::TestApplication::Initialize()
 
 void My::TestApplication::OnDraw()
 {
-    // std::cout<<"onDraw"<<std::endl;
-    dynamic_cast<TestGraphicsManager*>(g_pGraphicsManager)->DrawBitmap(m_Image, 0);
-    dynamic_cast<TestGraphicsManager*>(g_pGraphicsManager)->DrawBitmap(m_Image, 1);
+    dynamic_cast<TestGraphicsManager*>(g_pGraphicsManager)->DrawBitmap(m_Image);
 }
 
-void My::TestGraphicsManager::DrawBitmap(const Image* image, int32_t index)
+void My::TestGraphicsManager::DrawBitmap(const Image image)
 {
 	HRESULT hr;
 
     // start build GPU draw command
-    // std::cout<<"DrawBitmap"<<std::endl;
     m_pRenderTarget->BeginDraw();
 
     D2D1_BITMAP_PROPERTIES props;
@@ -87,14 +86,13 @@ void My::TestGraphicsManager::DrawBitmap(const Image* image, int32_t index)
     props.pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
     props.dpiX = 72.0f;
     props.dpiY = 72.0f;
-    // std::cout<<props.dpiX<<"\t"<<props.dpiY<<std::endl;
     SafeRelease(&m_pBitmap);
-    hr = m_pRenderTarget->CreateBitmap(D2D1::SizeU(image[index].Width, image[index].Height), 
-                                                    image[index].data, image[index].pitch, props, &m_pBitmap);
+    hr = m_pRenderTarget->CreateBitmap(D2D1::SizeU(image.Width, image.Height), 
+                                                    image.data, image.pitch, props, &m_pBitmap);
 
     D2D1_SIZE_F rtSize = m_pRenderTarget->GetSize();
     D2D1_SIZE_F bmpSize = m_pBitmap->GetSize();
-    std::cout<<rtSize.height<<"\t"<<rtSize.width<<"\t"<<bmpSize.height<<"\t"<<bmpSize.width<<std::endl;
+
     D2D1_RECT_F source_rect = D2D1::RectF(
                      0,
                      0,
@@ -107,9 +105,9 @@ void My::TestGraphicsManager::DrawBitmap(const Image* image, int32_t index)
 	float dest_width = rtSize.height * aspect;
 
     D2D1_RECT_F dest_rect = D2D1::RectF(
-                     dest_width * index,
                      0,
-                     dest_width * (index + 1),
+                     0,
+                     dest_width,
                      dest_height 
                      );
 

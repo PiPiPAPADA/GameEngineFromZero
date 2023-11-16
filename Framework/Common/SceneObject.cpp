@@ -58,21 +58,21 @@ namespace My {
 		out << "SceneObject" << std::endl;
 		out << "-----------" << std::endl;
 		out << "GUID: " << obj.m_Guid << std::endl;
-		out << "Type: " << obj.m_type << std::endl;
+		out << "Type: " << obj.m_Type << std::endl;
 
 		return out;
 	}
 
 	std::ostream& operator<<(std::ostream& out, const SceneObjectVertexArray& obj)
 	{
-		out << "Attribute: " << obj.m_Attribute << std::endl;
-		out << "Morph Target Index: 0x" << obj.m_MorphTargetIndex << std::endl;
+		out << "Attribute: " << obj.m_strAttribute << std::endl;
+		out << "Morph Target Index: 0x" << obj.m_nMorphTargetIndex << std::endl;
 		out << "Data Type: " << obj.m_DataType << std::endl;
 		out << "Data Size: 0x" << obj.m_szData << std::endl;
 		out << "Data: ";
 		for(size_t i = 0; i < obj.m_szData; i++)
 		{
-			out << *(reinterpret_cast<const float*>(obj.m_pDataFloat) + i) << ' ';;
+			out << *(reinterpret_cast<const float*>(obj.m_pData) + i) << ' ';;
 		}
 
 		return out;
@@ -140,14 +140,6 @@ namespace My {
 		return out;
 	}
 
-	std::ostream& operator<<(std::ostream& out, const SceneObjectInfiniteLight& obj)
-	{
-		out << static_cast<const SceneObjectLight&>(obj) << std::endl;
-		out << "Light Type: Infinite" << std::endl;
-
-		return out;
-	}
-
 	std::ostream& operator<<(std::ostream& out, const SceneObjectMaterial& obj)
 	{
 		out << static_cast<const BaseSceneObject&>(obj) << std::endl;
@@ -176,9 +168,7 @@ namespace My {
 	{
 		out << static_cast<const BaseSceneObject&>(obj) << std::endl;
 		out << "Color: " << obj.m_LightColor << std::endl;
-		out << "Intensity: " << obj.m_Intensity << std::endl;
-		out << "Near Clip Distance: " << obj.m_fNearClipDistance << std::endl;
-		out << "Far Clip Distance: " << obj.m_fFarClipDistance << std::endl;
+		out << "Intensity: " << obj.m_fIntensity << std::endl;
 		out << "Cast Shadows: " << obj.m_bCastShadows << std::endl;
 
 		return out;
@@ -198,6 +188,14 @@ namespace My {
 		out << "Light Type: Spot" << std::endl;
 		out << "Cone Angle: " << obj.m_fConeAngle << std::endl;
 		out << "Penumbra Angle: " << obj.m_fPenumbraAngle << std::endl;
+
+		return out;
+	}
+
+	std::ostream& operator<<(std::ostream& out, const SceneObjectInfiniteLight& obj)
+	{
+		out << static_cast<const SceneObjectLight&>(obj) << std::endl;
+		out << "Light Type: Infinite" << std::endl;
 
 		return out;
 	}
@@ -241,7 +239,7 @@ namespace My {
 
     float DefaultAttenFunc(float intensity, float distance)
     {
-        return intensity / (1 + distance);
+        return intensity / pow(1 + distance, 2.0f);
     }
 
 }

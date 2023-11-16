@@ -7,7 +7,7 @@ namespace My
 {
     Interface ImageParser{
         public:
-            virtual Image& Parser(const Buffer& buf) = 0;
+            virtual Image Parser(const Buffer& buf) = 0;
     };
     
 } // namespace My
